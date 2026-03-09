@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ethereum Voting — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f0c29 0%, #1a1a4e 50%, #24243e 100%);
+      overflow: hidden;
+    }
+
+    /* Animated background blobs */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      animation: drift 10s ease-in-out infinite alternate;
+    }
+
+    body::before {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, #6c63ff, #3b1cb7);
+      top: -200px;
+      left: -100px;
+    }
+
+    body::after {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, #00d4ff, #0082ff);
+      bottom: -100px;
+      right: -100px;
+      animation-delay: 5s;
+    }
+
+    @keyframes drift {
+      from {
+        transform: translate(0, 0) scale(1);
+      }
+
+      to {
+        transform: translate(40px, 30px) scale(1.1);
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 48px 44px;
+      width: 420px;
+      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
+      position: relative;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #6c63ff, #3b1cb7);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .logo-sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 2px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    p.sub {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.55);
+      margin-bottom: 36px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 14px 18px;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      margin-bottom: 20px;
+    }
+
+    input:focus {
+      border-color: #6c63ff;
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+    }
+
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #6c63ff, #3b1cb7);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .2s;
+      margin-top: 4px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(108, 99, 255, 0.45);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-top: 12px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(255, 255, 255, 0.1);
+    }
+
+    .error {
+      color: #ff6b6b;
+      font-size: 13px;
+      margin-top: -12px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .footer a {
+      color: rgba(108, 99, 255, 0.8);
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🗳️</div>
+      <div>
+        <div class="logo-text">VoteChain</div>
+        <div class="logo-sub">Decentralized Voting on Ethereum</div>
+      </div>
+    </div>
+
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to access the voting portal</p>
+
+    <label for="voter_id">Voter ID</label>
+    <input type="text" id="voter_id" placeholder="e.g. voter001" autocomplete="username" />
+
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+
+    <p class="error" id="err">Invalid credentials. Please try again.</p>
+
+    <button id="loginBtn" onclick="login()">Sign In →</button>
+    <button class="btn-secondary" onclick="window.location.href='/register'">Register New Voter</button>
+
+    <div class="footer">
+      Secured by Ethereum Blockchain &bull; <a href="https://ethereum.org" target="_blank">Learn more</a>
+    </div>
+  </div>
+
+  <script>
+    async function login() {
+      const voter_id = document.getElementById('voter_id').value.trim();
+      const password = document.getElementById('password').value;
+      const errEl = document.getElementById('err');
+      errEl.style.display = 'none';
+      if (!voter_id || !password) { errEl.textContent = 'Please enter both fields.'; errEl.style.display = 'block'; return; }
+
+      try {
+        const res = await fetch(`/login?voter_id=${encodeURIComponent(voter_id)}&password=${encodeURIComponent(password)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Login failed');
+        // Redirect based on role
+        const dest = data.role === 'admin' ? '/admin' : '/vote';
+        window.location.href = `${dest}?Authorization=Bearer%20${encodeURIComponent(data.token)}`;
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+      }
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  </script>
+</body>
+
+</html>

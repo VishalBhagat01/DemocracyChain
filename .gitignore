@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Hardhat build outputs
+artifacts/
+cache/
+
+# Environment — NEVER commit real secrets
+.env
+
+# Generated contract deployment info
+contract.json
+frontend/src/contract.json
+
+# Debug / scratch files
+voters_debug.json
+debug_vote.js
+check_contract.js
+check_voters.js
+verify_blockchain.js
+migrate_db.js

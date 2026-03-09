@@ -1,0 +1,28 @@
+{
+  "name": "ethereum-voting",
+  "version": "1.0.0",
+  "description": "Decentralized Voting System using Ethereum Blockchain",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
+    "node": "npx hardhat node",
+    "deploy:ganache": "npx hardhat run scripts/deploy.js --network ganache",
+    "frontend": "node frontend/server.js",
+    "setup:db": "node database_api/setup_db.js"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "@truffle/contract": "^4.6.31",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.0",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.0",
+    "web3": "^4.13.0"
+  }
+}
