@@ -1,214 +1,188 @@
-# VoteChain — Decentralized Voting System on Ethereum
+# VoteChain
 
-A full-stack decentralized voting system powered by **Ethereum** smart contracts, **Web3.js**, and a **PostgreSQL** voter database. Features anonymous on-chain voting, a biometric face-registration portal, admin election management, and live results — all running locally with Hardhat.
+VoteChain is a full-stack voting platform that combines:
 
----
+- a Solidity smart contract for vote integrity,
+- an Express API for authentication and voting workflow,
+- PostgreSQL for voter identity and audit metadata,
+- optional ML and graph analytics microservices,
+- a React dashboard for operational analytics.
 
-## ✨ Features
+Core voting data is committed on-chain. User identity, approvals, and audit trails stay in PostgreSQL.
 
-- **Smart Contract** — Solidity `Voting.sol` with multi-election support, candidate management, anonymous hash-based voter identity, and double-vote prevention
-- **Admin Portal** — Create elections, add/manage candidates, register voters, view live standings
-- **Voter Portal** — Cast votes directly on-chain via MetaMask
-- **Face Registration** — Biometric face embedding capture during voter registration
-- **Live Results** — Real-time vote counts fetched from the blockchain
-- **Auth** — JWT-based login with role separation (admin / voter)
-- **Database** — PostgreSQL (Supabase) stores voter records; blockchain stores votes
-- **Tests** — Hardhat test suite covering all smart contract functions
+## Features
 
----
+- Smart contract election lifecycle and candidate management
+- Hash-based anonymous vote recording on Ethereum
+- JWT-based login with admin and voter roles
+- Face embedding verification before vote submission
+- Admin voter approval and voter management endpoints
+- Optional ML congestion predictions and graph analytics services
 
-## �️ Prerequisites
+## Tech Stack
 
-| Tool | Version | Link |
-|------|---------|------|
-| Node.js | v18+ | https://nodejs.org/ |
-| MetaMask | Latest | https://metamask.io/download/ |
-| PostgreSQL | Any (or Supabase) | https://supabase.com/ |
+- Node.js + Express
+- Hardhat + Solidity + Ethers
+- PostgreSQL (Supabase or self-hosted)
+- React + Vite (dashboard)
+- FastAPI (ML service and graph service)
+- Neo4j (graph service backend)
 
----
+## Prerequisites
 
-## 🚀 Quick Start
+- Node.js 18+
+- Python 3.10+
+- PostgreSQL instance
+- MetaMask (for local wallet testing)
+- Neo4j (only if running graph service)
 
-### 1. Clone & Install
+## Quick Start (Local)
+
+1. Install dependencies
 
 ```bash
-git clone https://github.com/<your-username>/votechain.git
-cd votechain
 npm install
+cd frontend/apps/dashboard && npm install
 ```
 
-### 2. Configure Environment
-
-Copy the example and fill in your values:
+2. Create environment file
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env`:
+Windows CMD alternative:
 
-```env
-# Local Hardhat private key (Account #0 — default for local dev)
-MASTER_WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
-# Local Hardhat RPC
-ETH_RPC_URL=http://127.0.0.1:8545
-
-# PostgreSQL connection string (Supabase or local)
-DATABASE_URL=postgresql://user:password@host:5432/postgres
-
-# JWT secret (generate a random 64-char hex string)
-SECRET_KEY=your_secret_key_here
-
-# Admin password for the portal
-ADMIN_PASSWORD=Admin@123
+```bat
+copy .env.example .env
 ```
 
-> **Note:** Never commit your real `.env` file. It is already in `.gitignore`.
+3. Update required values in .env
 
-### 3. Set Up the Database
+- DATABASE_URL
+- SECRET_KEY
+- MASTER_WALLET_PRIVATE_KEY
+- ETH_RPC_URL
+
+4. Initialize database schema and seed users
 
 ```bash
 npm run setup:db
 ```
 
-This runs `database_api/setup_db.js` which initialises the `voters` table in PostgreSQL.
-
-### 4. Start Local Ethereum Node *(separate terminal)*
+5. Start local blockchain node (terminal 1)
 
 ```bash
-npx hardhat node
+npm run node
 ```
 
-Starts a local Hardhat node at `http://127.0.0.1:8545` and prints **20 test accounts** with 10 000 ETH each.
-
-**Add the network to MetaMask:**
-
-| Field | Value |
-|-------|-------|
-| Network name | `Hardhat Local` |
-| RPC URL | `http://127.0.0.1:8545` |
-| Chain ID | `31337` |
-| Currency | `ETH` |
-
-Import one of the printed private keys into MetaMask to use as your test wallet.
-
-### 5. Compile & Deploy the Contract
+6. Compile and deploy contract (terminal 2)
 
 ```bash
 npm run compile
 npm run deploy:local
 ```
 
-Deploys `Voting.sol`, seeds a demo election (`election2026`) with 3 candidates, and writes contract info to `frontend/src/contract.json`.
+This writes contract metadata to frontend/src/contract.json.
 
-### 6. Start the Web Server
+7. Start Express API + static app (terminal 3)
 
 ```bash
 npm run frontend
 ```
 
-Open **http://localhost:8080** in your browser.
+App URL: http://localhost:8080
 
----
-
-## 👤 Demo Accounts
-
-| Voter ID | Password | Role |
-|----------|----------|------|
-| `admin` | `Admin@123` | Admin |
-| `voter001` | `voter123` | Voter |
-| `voter002` | `voter123` | Voter |
-
----
-
-## 🧪 Run Tests
+8. Optional: start dashboard dev server (terminal 4)
 
 ```bash
-npm test
+npm run dashboard:dev
 ```
 
-Runs the Hardhat test suite in `test/Voting.test.js` covering election creation, candidate management, vote casting, double-vote prevention, and anonymity.
+Dashboard URL: http://localhost:5173
 
----
+## Demo Credentials
 
-## 📂 Project Structure
+The DB seed script creates the following users:
 
-```
+- admin / value of ADMIN_PASSWORD (default Admin@123)
+- voter001 / Voter@001
+- voter002 / Voter@002
+
+## Environment Variables
+
+Base server and blockchain:
+
+- MASTER_WALLET_PRIVATE_KEY
+- ETH_RPC_URL
+- DATABASE_URL
+- SECRET_KEY
+- ADMIN_PASSWORD
+
+Dashboard and service URLs:
+
+- VITE_BACKEND_URL (default http://localhost:8080)
+- VITE_ML_URL (default http://localhost:8001)
+- VITE_GRAPH_URL (default http://localhost:8002)
+- ML_SERVICE_URL (default http://localhost:8001)
+
+Graph service:
+
+- NEO4J_URI
+- NEO4J_USER
+- NEO4J_PASSWORD
+
+See .env.example for a full template.
+
+## Available Scripts
+
+- npm run compile: Compile Solidity contracts
+- npm test: Run Hardhat test suite
+- npm run node: Start Hardhat local chain
+- npm run deploy:local: Deploy contract to localhost
+- npm run deploy:ganache: Deploy contract to Ganache
+- npm run frontend: Start Express server
+- npm run setup:db: Reset and initialize PostgreSQL schema
+- npm run dashboard:dev: Run Vite dashboard in dev mode
+- npm run dashboard:build: Build dashboard for production
+- npm run ml:start: Run ML FastAPI service locally
+- npm run graph:start: Run graph FastAPI service locally
+- npm run graph:seed: Seed Neo4j sample graph data
+
+## Project Structure
+
+```text
 votechain/
-├── contracts/
-│   └── Voting.sol              # Solidity smart contract
-├── scripts/
-│   └── deploy.js               # Hardhat deploy + seed script
-├── test/
-│   └── Voting.test.js          # Hardhat test suite
-├── frontend/
-│   ├── server.js               # Express backend (API + static serving)
-│   └── src/
-│       ├── login.html          # Login page
-│       ├── register.html       # Voter registration (with face capture)
-│       ├── vote.html           # Voter portal (MetaMask)
-│       ├── admin.html          # Admin portal
-│       └── results.html        # Live results
-├── database_api/
-│   ├── setup_db.js             # Creates DB tables
-│   ├── db_init.sql             # SQL schema
-│   └── db_reset.sql            # SQL reset script
-├── hardhat.config.js           # Hardhat configuration
-├── package.json
-├── .env.example                # Environment variable template
-└── .gitignore
+|- contracts/                # Solidity contracts
+|- scripts/                  # Deployment scripts
+|- test/                     # Hardhat tests
+|- database_api/             # SQL and DB initialization scripts
+|- frontend/
+|  |- server.js              # Express API and static host
+|  |- src/                   # Legacy HTML pages + contract.json
+|  |- public/models/         # Face model assets
+|  |- apps/dashboard/        # React dashboard (Vite)
+|  |- apps/ml-service/       # FastAPI ML service
+|  |- apps/graph-service/    # FastAPI Neo4j analytics service
+|- hardhat.config.js
+|- package.json
+|- .env.example
 ```
 
----
+## Testnet Deployment Notes
 
-## � Available Scripts
+To deploy to a live EVM network:
 
-| Command | Description |
-|---------|-------------|
-| `npm run compile` | Compile Solidity contracts |
-| `npm run deploy:local` | Deploy contract to local Hardhat node |
-| `npm run deploy:ganache` | Deploy contract to Ganache |
-| `npm run node` | Start local Hardhat Ethereum node |
-| `npm run frontend` | Start Express web server |
-| `npm run setup:db` | Initialise PostgreSQL database |
-| `npm test` | Run Hardhat smart contract tests |
+1. Set ETH_RPC_URL to the target RPC endpoint.
+2. Set MASTER_WALLET_PRIVATE_KEY to a funded deployer key.
+3. Run:
 
----
+```bash
+npx hardhat run scripts/deploy.js --network live
+```
 
-## 🔐 Smart Contract Functions
+4. Ensure frontend/src/contract.json is distributed with the deployed address and ABI.
 
-| Function | Access | Description |
-|----------|--------|-------------|
-| `createElection(id, name, start, end)` | Owner | Create a new election |
-| `addCandidate(electionId, name, party)` | Owner | Add a candidate to an election |
-| `castVote(electionId, voterHash, candidateId)` | Public | Cast an anonymous vote on-chain |
-| `checkVoterStatus(electionId, hash)` | Public | Check if a voter hash has already voted |
-| `getCandidate(electionId, id)` | Public | Get candidate details + vote count |
-| `getCandidateCount(electionId)` | Public | Number of candidates in an election |
-| `getElection(electionId)` | Public | Get election metadata |
-
----
-
-## �️ How Voter Anonymity Works
-
-The voter's real identity is **never stored on-chain**:
-
-1. Off-chain: `voterHash = keccak256(voterAddress + ":" + electionId)`
-2. Only this hash is passed to `castVote()` and recorded on the blockchain
-3. The actual wallet address or voter ID is **never written to the ledger**
-
----
-
-## 🌐 Deploying to a Testnet (Sepolia)
-
-1. Add your Sepolia RPC URL and funded wallet key to `.env`
-2. Add a `sepolia` network entry in `hardhat.config.js`
-3. Run: `npx hardhat run scripts/deploy.js --network sepolia`
-4. Update `ETH_RPC_URL` in `.env` to your Sepolia RPC and restart the server
-
----
-
-## 📄 License
+## License
 
 MIT

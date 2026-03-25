@@ -12,6 +12,21 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── CORS — allow requests from the React dashboard (Vite dev server) ────────
+app.use((req, res, next) => {
+    const allowed = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    const origin = req.headers.origin;
+    if (allowed.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+});
+
+
 // Redirect logs to file for debugging
 const logFile = fs.createWriteStream(path.join(__dirname, 'server.log'), { flags: 'a' });
 const logStdout = process.stdout;
@@ -411,6 +426,71 @@ app.get("/api/audit-log", authorizeUser, async (req, res) => {
         "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100"
     );
     res.json(rows);
+});
+
+// ── GET /api/receipt/:tx_hash — Fetch blockchain transaction ──────────────
+app.get("/api/receipt/:tx_hash", async (req, res) => {
+    const { tx_hash } = req.params;
+    
+    try {
+        if (!contract || !masterWallet) {
+            return res.status(503).json({ error: "Blockchain service not ready" });
+        }
+
+        // Fetch transaction from blockchain using ethers
+        const provider = masterWallet.provider;
+        if (!provider) {
+            return res.status(503).json({ error: "Provider not available" });
+        }
+
+        const tx = await provider.getTransaction(tx_hash);
+        if (!tx) {
+            return res.status(404).json({ error: "Transaction not found" });
+        }
+
+        const receipt = await provider.getTransactionReceipt(tx_hash);
+        
+        // Hash the voter ID from transaction
+        const voterHash = ethers.id(tx_hash + process.env.SECRET_KEY);
+
+        return res.json({
+            tx_hash: tx.hash,
+            block_number: receipt?.blockNumber || tx.blockNumber || 0,
+            timestamp: (await provider.getBlock(tx.blockNumber || 'latest'))?.timestamp || Math.floor(Date.now() / 1000),
+            election_id: "election_001",
+            voter_hash: voterHash,
+            from: tx.from,
+            to: tx.to,
+            status: receipt?.status === 1 ? "confirmed" : "pending"
+        });
+    } catch (err) {
+        console.error("Receipt fetch error:", err);
+        return res.status(500).json({ error: "Failed to fetch receipt", details: err.message });
+    }
+});
+
+// ── GET /api/booth/:booth_id/status — Proxy to ML service ──────────────────
+app.get("/api/booth/:booth_id/status", async (req, res) => {
+    const { booth_id } = req.params;
+    
+    try {
+        const mlUrl = process.env.ML_SERVICE_URL || 'http://localhost:8001';
+        const response = await fetch(`${mlUrl}/predict/peak-hours/${booth_id}`);
+        
+        if (!response.ok) {
+            return res.status(response.status).json({ error: "ML service error" });
+        }
+
+        const data = await response.json();
+        return res.json({
+            booth_id,
+            ...data,
+            timestamp: new Date().toISOString()
+        });
+    } catch (err) {
+        console.error("Booth status fetch error:", err);
+        return res.status(500).json({ error: "Failed to fetch booth status" });
+    }
 });
 
 // ── Health check ──────────────────────────────────────────────────────────

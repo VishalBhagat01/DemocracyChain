@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Frontend build outputs
+frontend/apps/dashboard/dist/
+
 # Hardhat build outputs
 artifacts/
 cache/
@@ -19,3 +22,21 @@ check_contract.js
 check_voters.js
 verify_blockchain.js
 migrate_db.js
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Misc logs and OS files
+*.log
+.DS_Store
+
+
+artifacts/
+cache/
+contract.json
+frontend/server.log
+*.log
+node_modules/
+.env
+dist/

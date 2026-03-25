@@ -9,7 +9,12 @@
     "node": "npx hardhat node",
     "deploy:ganache": "npx hardhat run scripts/deploy.js --network ganache",
     "frontend": "node frontend/server.js",
-    "setup:db": "node database_api/setup_db.js"
+    "setup:db": "node database_api/setup_db.js",
+    "dashboard:dev": "cd frontend/apps/dashboard && npm run dev",
+    "dashboard:build": "cd frontend/apps/dashboard && npm run build",
+    "ml:start": "cd frontend/apps/ml-service && uvicorn main:app --reload --port 8001",
+    "graph:start": "cd frontend/apps/graph-service && uvicorn main:app --reload --port 8002",
+    "graph:seed": "cd frontend/apps/graph-service && python seed.py"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
