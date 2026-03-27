@@ -1,26 +1,40 @@
 import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import Home from './pages/Home'
 import BoothManagement from './pages/BoothManagement'
-import Analytics from './pages/Analytics'
 import Receipt from './pages/Receipt'
 import Login from './pages/Login'
 import Elections from './pages/Elections'
 import Candidates from './pages/Candidates'
 import Voters from './pages/Voters'
-import Vote from './pages/Vote'
 import Results from './pages/Results'
-import Profile from './pages/Profile'
-import { isLoggedIn, clearToken, getUser, isAdmin } from './auth'
+import { isLoggedIn, clearToken, getUser, isAdmin, saveToken, getToken } from './auth'
+import { config } from './config'
 
 // Guard: redirects to /login if not authenticated
 function PrivateRoute({ children }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const token = searchParams.get('token')
+  
+  if (token) {
+    saveToken(token)
+    searchParams.delete('token')
+    setSearchParams(searchParams, { replace: true })
+  }
+
   return isLoggedIn() ? children : <Navigate to="/login" replace />
 }
 
 // Guard: allows only admin role
 function AdminRoute({ children }) {
   return isAdmin() ? children : <Navigate to="/" replace />
+}
+
+// Guard: redirects to Express for voters
+function VoterRedirect() {
+  const token = getToken()
+  window.location.href = `${config.backendUrl}/vote?Authorization=Bearer%20${encodeURIComponent(token)}`
+  return null
 }
 
 function Navbar() {
@@ -35,21 +49,15 @@ function Navbar() {
     navigate('/login', { replace: true })
   }
 
-  // Different navigation for admin vs voter
-  const navLinks = admin ? [
+  // Navigation exclusively for admin
+  const navLinks = [
     { to: '/', label: 'Dashboard' },
     { to: '/elections', label: 'Elections' },
     { to: '/candidates', label: 'Candidates' },
     { to: '/voters', label: 'Voters' },
     { to: '/booth-management', label: 'Booths' },
-    { to: '/analytics', label: 'Analytics' },
     { to: '/results', label: 'Results' },
-  ] : [
-    { to: '/', label: 'Home' },
-    { to: '/vote', label: 'Vote' },
-    { to: '/results', label: 'Results' },
-    { to: '/receipt', label: 'Receipt' },
-    { to: '/profile', label: 'Profile' },
+    { to: '/receipt', label: 'Verify Receipt' },
   ]
 
   const isActive = (path) => location.pathname === path
@@ -163,21 +171,17 @@ function AppLayout() {
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Routes>
-          {/* Common routes */}
-          <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
-          <Route path="/results" element={<PrivateRoute><Results /></PrivateRoute>} />
-          <Route path="/receipt" element={<PrivateRoute><Receipt /></PrivateRoute>} />
-          <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-
-          {/* Voter routes */}
-          <Route path="/vote" element={<PrivateRoute><Vote /></PrivateRoute>} />
+          {/* Admin Home or Voter Eviction */}
+          <Route path="/" element={<PrivateRoute>{isAdmin() ? <Home /> : <VoterRedirect />}</PrivateRoute>} />
 
           {/* Admin routes */}
+          <Route path="/results" element={<PrivateRoute><AdminRoute><Results /></AdminRoute></PrivateRoute>} />
+          <Route path="/receipt" element={<PrivateRoute><AdminRoute><Receipt /></AdminRoute></PrivateRoute>} />
+
           <Route path="/elections" element={<PrivateRoute><AdminRoute><Elections /></AdminRoute></PrivateRoute>} />
           <Route path="/candidates" element={<PrivateRoute><AdminRoute><Candidates /></AdminRoute></PrivateRoute>} />
           <Route path="/voters" element={<PrivateRoute><AdminRoute><Voters /></AdminRoute></PrivateRoute>} />
           <Route path="/booth-management" element={<PrivateRoute><AdminRoute><BoothManagement /></AdminRoute></PrivateRoute>} />
-          <Route path="/analytics" element={<PrivateRoute><AdminRoute><Analytics /></AdminRoute></PrivateRoute>} />
         </Routes>
       </main>
     </div>

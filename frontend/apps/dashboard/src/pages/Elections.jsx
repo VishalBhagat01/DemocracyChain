@@ -25,7 +25,7 @@ function Elections() {
   useEffect(() => {
     async function initBlockchain() {
       try {
-        const resp = await fetch(`${config.backendUrl}/contract.json`)
+        const resp = await fetch(`${config.backendUrl}/contract.json?t=${Date.now()}`)
         if (!resp.ok) {
           setConnectionStatus('error')
           return
@@ -67,8 +67,7 @@ function Elections() {
           id,
           name: details[1],
           startDate: new Date(Number(details[2]) * 1000),
-          endDate: new Date(Number(details[3]) * 1000),
-          isActive: details[4]
+          endDate: new Date(Number(details[3]) * 1000)
         })
       }
       setElections(electionData)
@@ -102,12 +101,20 @@ function Elections() {
 
       await contract.methods.createElection(electionId.trim(), displayName.trim(), start, end)
         .send({ from: account })
+        .on('receipt', () => {
+          setMessage({ type: 'success', text: 'Election created on blockchain' })
+          setFormData({ electionId: '', displayName: '', startDate: '', endDate: '' })
+          loadElections()
+        })
+        .on('error', (err) => {
+          console.error(err)
+          setMessage({ type: 'error', text: err.message || 'Transaction failed' })
+        })
 
-      setMessage({ type: 'success', text: 'Election created on blockchain' })
-      setFormData({ electionId: '', displayName: '', startDate: '', endDate: '' })
-      loadElections()
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      if (err.message) {
+         setMessage({ type: 'error', text: err.message })
+      }
     } finally {
       setSubmitting(false)
     }
@@ -117,9 +124,14 @@ function Elections() {
     if (!confirm(`Remove "${id}" from blockchain? This cannot be undone.`)) return
     try {
       await contract.methods.deleteElection(id).send({ from: account })
-      loadElections()
+        .on('receipt', () => {
+          loadElections()
+        })
+        .on('error', (err) => {
+          alert(err.message || 'Deletion failed')
+        })
     } catch (err) {
-      alert(err.message)
+      if (err.message) alert(err.message)
     }
   }
 

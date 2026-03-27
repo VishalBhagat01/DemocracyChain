@@ -100,9 +100,9 @@ app.get("/register", (_req, res) => res.sendFile(path.join(__dirname, "src/regis
 app.get("/vote", authorizeUser, (_req, res) => res.sendFile(path.join(__dirname, "src/vote.html")));
 app.get("/admin", authorizeUser, (req, res) => {
     if (req.user.role !== "admin") return res.status(403).sendFile(path.join(__dirname, "src/login.html"));
-    res.sendFile(path.join(__dirname, "src/admin.html"));
+    // Redirect admin to the modern React Dashboard
+    res.redirect("http://localhost:5173");
 });
-app.get("/results", (_req, res) => res.sendFile(path.join(__dirname, "src/results.html")));
 app.get("/favicon.ico", (_req, res) => res.status(204).end());
 
 // ── Contract JSON ──────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ app.post("/login", async (req, res) => {
 
     try {
         const { rows } = await pool.query(
-            "SELECT voter_id, hashed_password, role, full_name, is_active FROM voters WHERE voter_id = $1",
+            "SELECT voter_id, hashed_password, role, full_name, is_active, booth_id FROM voters WHERE voter_id = $1",
             [voter_id.trim()]
         );
 
@@ -142,7 +142,7 @@ app.post("/login", async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: voter.voter_id, role: voter.role, name: voter.full_name },
+            { id: voter.voter_id, role: voter.role, name: voter.full_name, booth: voter.booth_id },
             JWT_SECRET,
             { expiresIn: '2h' }
         );
@@ -153,9 +153,38 @@ app.post("/login", async (req, res) => {
     }
 });
 
+app.get("/profile", authorizeUser, (_req, res) => res.sendFile(path.join(__dirname, "src/profile.html")));
+
 // ────────────────────────────────────────────────────────────────────────
 // AUTHENTICATION
 // ────────────────────────────────────────────────────────────────────────
+
+app.get('/api/me', authorizeUser, (req, res) => {
+    res.json(req.user);
+});
+
+app.get('/api/my-receipts', authorizeUser, async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            "SELECT details, created_at FROM audit_log WHERE action = 'vote_cast' AND voter_id = $1 ORDER BY created_at DESC",
+            [req.user.id || req.user.voter_id]
+        );
+        
+        // Parse "Election: X, Tx: Y" strings into json
+        const receipts = rows.map(r => {
+            const match = r.details.match(/Election:\s*([^,]+),\s*Tx:\s*([^ ]+)/i);
+            return {
+                election_id: match ? match[1] : 'Unknown',
+                tx_hash: match ? match[2] : r.details,
+                created_at: r.created_at
+            };
+        });
+        
+        res.json(receipts);
+    } catch (e) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
 
 app.post('/api/login', async (req, res) => {
     const { voter_id, password } = req.body;
@@ -499,6 +528,26 @@ app.post("/api/candidates/bulk-csv", authorizeUser, async (req, res) => {
     res.json({ success: true, ...results });
 });
 
+// ── POST /api/party-logo — admin only: upload party logo image ───────────
+app.post("/api/party-logo", authorizeUser, (req, res) => {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const { partySlug, imageBase64 } = req.body;
+    if (!partySlug || !imageBase64) return res.status(400).json({ message: "partySlug and imageBase64 required" });
+
+    try {
+        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+        const dir = path.join(__dirname, "public/logos");
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        
+        const filePath = path.join(dir, `${partySlug.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`);
+        fs.writeFileSync(filePath, base64Data, 'base64');
+        res.json({ success: true, message: "Logo uploaded" });
+    } catch (err) {
+        console.error("Logo upload error:", err);
+        res.status(500).json({ message: "Failed to save logo" });
+    }
+});
+
 // ── DELETE /api/voters/:id — admin only ─────────────────────────────
 app.delete("/api/voters/:id", authorizeUser, async (req, res) => {
     if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
@@ -534,6 +583,30 @@ app.get("/api/audit-log", authorizeUser, async (req, res) => {
         res.json(rows);
     } catch (err) {
         console.error("Audit log error:", err);
+        res.status(500).json({ message: "Database error" });
+    }
+});
+
+// ── GET /api/booths/stats — admin only ────────────────────────────────────
+app.get("/api/booths/stats", authorizeUser, async (req, res) => {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const BOOTHS = ['BOOTH_001', 'BOOTH_002', 'BOOTH_003', 'BOOTH_004', 'BOOTH_005', 'BOOTH_006'];
+    try {
+        const { rows } = await pool.query(
+            `SELECT booth_id, COUNT(*) as total,
+             SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) as approved,
+             SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending
+             FROM voters WHERE role != 'admin' AND booth_id = ANY($1)
+             GROUP BY booth_id`,
+            [BOOTHS]
+        );
+        // Build a full map so booths with 0 voters still appear
+        const statsMap = {};
+        for (const b of BOOTHS) statsMap[b] = { booth_id: b, total: 0, approved: 0, pending: 0 };
+        for (const r of rows) statsMap[r.booth_id] = { ...statsMap[r.booth_id], ...r, total: Number(r.total), approved: Number(r.approved), pending: Number(r.pending) };
+        res.json(Object.values(statsMap));
+    } catch (err) {
+        console.error("Booth stats error:", err);
         res.status(500).json({ message: "Database error" });
     }
 });

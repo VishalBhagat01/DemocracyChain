@@ -101,6 +101,24 @@ function Results() {
     })
   }
 
+  const downloadResults = () => {
+    if (!candidates.length || !electionInfo) return
+    const rows = [
+      ['Rank', 'Name', 'Party', 'Votes', 'Percentage'],
+      ...candidates.map((c, idx) => [
+        idx + 1, c.name, c.party, c.votes, `${c.percentage}%`
+      ])
+    ]
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([`Election: ${electionInfo.name}\nDate: ${formatDate(electionInfo.startDate)} - ${formatDate(electionInfo.endDate)}\nTotal Votes: ${totalVotes}\n\n${csv}`], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${activeElection}_results.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // Colors for the bars
   const barColors = [
     'bg-primary-500',
@@ -122,19 +140,32 @@ function Results() {
           <p className="text-surface-500 mt-1">Real-time vote counts from blockchain</p>
         </div>
 
-        <select
-          value={activeElection}
-          onChange={(e) => setActiveElection(e.target.value)}
-          className="bg-surface-50 border border-surface-300 rounded-lg px-4 py-2 text-sm text-surface-700 focus:outline-none focus:border-primary-500"
-        >
-          {elections.length === 0 ? (
-            <option value="">No elections</option>
-          ) : (
-            elections.map(e => (
-              <option key={e.id} value={e.id}>{e.name}</option>
-            ))
-          )}
-        </select>
+        <div className="flex items-center gap-3 flex-wrap">
+          <select
+            value={activeElection}
+            onChange={(e) => setActiveElection(e.target.value)}
+            className="bg-surface-50 border border-surface-300 rounded-lg px-4 py-2 text-sm text-surface-700 focus:outline-none focus:border-primary-500"
+          >
+            {elections.length === 0 ? (
+              <option value="">No elections</option>
+            ) : (
+              elections.map(e => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))
+            )}
+          </select>
+
+          <button
+            onClick={downloadResults}
+            disabled={!candidates.length}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border border-surface-300 hover:border-primary-400 hover:bg-primary-50 text-surface-700 hover:text-primary-700 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download CSV
+          </button>
+        </div>
       </div>
 
       {/* Election Info */}

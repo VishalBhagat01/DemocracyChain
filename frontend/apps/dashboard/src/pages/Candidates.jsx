@@ -13,12 +13,12 @@ function Candidates() {
   const [connectionStatus, setConnectionStatus] = useState('connecting')
 
   // Form state
-  const [formData, setFormData] = useState({ name: '', party: '' })
+  const [formData, setFormData] = useState({ name: '', party: '', logoFile: null })
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
 
   // Edit modal state
-  const [editModal, setEditModal] = useState({ open: false, id: null, name: '', party: '' })
+  const [editModal, setEditModal] = useState({ open: false, id: null, name: '', party: '', logoFile: null })
 
   // CSV state
   const [csvFile, setCsvFile] = useState(null)
@@ -29,7 +29,7 @@ function Candidates() {
   useEffect(() => {
     async function initBlockchain() {
       try {
-        const resp = await fetch(`${config.backendUrl}/contract.json`)
+        const resp = await fetch(`${config.backendUrl}/contract.json?t=${Date.now()}`)
         if (!resp.ok) return setConnectionStatus('error')
         const info = await resp.json()
         if (!window.ethereum) return setConnectionStatus('no-wallet')
@@ -59,8 +59,36 @@ function Candidates() {
     initBlockchain()
   }, [])
 
+  const uploadLogo = async (partyName, file) => {
+    if (!file) return;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const partySlug = partyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const res = await fetch(`${config.backendUrl}/api/party-logo`, {
+            method: 'POST',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ partySlug, imageBase64: reader.result })
+          });
+          if (!res.ok) throw new Error('Logo upload failed');
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const loadCandidates = useCallback(async () => {
-    if (!contract || !activeElection) return
+    if (!contract) return
+    if (!activeElection) {
+      setLoading(false)
+      setCandidates([])
+      return
+    }
     setLoading(true)
     try {
       const count = Number(await contract.methods.getCandidateCount(activeElection).call())
@@ -105,11 +133,17 @@ function Candidates() {
     try {
       await contract.methods.addCandidate(activeElection, name.trim(), party.trim())
         .send({ from: account })
-      setMessage({ type: 'success', text: 'Candidate added' })
-      setFormData({ name: '', party: '' })
-      loadCandidates()
+        .on('receipt', async () => {
+          if (formData.logoFile) await uploadLogo(party, formData.logoFile).catch(console.error);
+          setMessage({ type: 'success', text: 'Candidate added' })
+          setFormData({ name: '', party: '', logoFile: null })
+          loadCandidates()
+        })
+        .on('error', (err) => {
+          setMessage({ type: 'error', text: err.message || 'Transaction failed' })
+        })
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      if (err.message) setMessage({ type: 'error', text: err.message })
     } finally {
       setSubmitting(false)
     }
@@ -120,10 +154,16 @@ function Candidates() {
     try {
       await contract.methods.updateCandidate(activeElection, editModal.id, editModal.name, editModal.party)
         .send({ from: account })
-      setEditModal({ open: false, id: null, name: '', party: '' })
-      loadCandidates()
+        .on('receipt', async () => {
+          if (editModal.logoFile) await uploadLogo(editModal.party, editModal.logoFile).catch(console.error);
+          setEditModal({ open: false, id: null, name: '', party: '', logoFile: null })
+          loadCandidates()
+        })
+        .on('error', (err) => {
+          alert(err.message || 'Transaction failed')
+        })
     } catch (err) {
-      alert(err.message)
+      if (err.message) alert(err.message)
     }
   }
 
@@ -131,9 +171,14 @@ function Candidates() {
     if (!confirm(`Remove "${name}" from this election?`)) return
     try {
       await contract.methods.deleteCandidate(activeElection, id).send({ from: account })
-      loadCandidates()
+        .on('receipt', () => {
+          loadCandidates()
+        })
+        .on('error', (err) => {
+          alert(err.message || 'Deletion failed')
+        })
     } catch (err) {
-      alert(err.message)
+      if (err.message) alert(err.message)
     }
   }
 
@@ -141,35 +186,45 @@ function Candidates() {
     if (!csvFile || !activeElection) return
     setCsvUploading(true)
 
-    const formData = new FormData()
-    formData.append('file', csvFile)
-    formData.append('electionId', activeElection)
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const text = e.target.result
+        const res = await fetch(`${config.backendUrl}/api/candidates/bulk-csv`, {
+          method: 'POST',
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ csv: text, electionId: activeElection })
+        })
+        const data = await res.json()
 
-    try {
-      const res = await fetch(`${config.backendUrl}/api/candidates/bulk-csv`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: formData
-      })
-      const data = await res.json()
+        if (!res.ok) throw new Error(data.message || 'Upload failed')
 
-      if (!res.ok) throw new Error(data.error || 'Upload failed')
-
-      // Re-add to blockchain
-      for (const c of data.candidates || []) {
-        await contract.methods.addCandidate(activeElection, c.name, c.party)
-          .send({ from: account })
+        let msg = `Imported ${data.imported || 0} candidates.`
+        if (data.skipped > 0) msg += ` Skipped ${data.skipped}.`
+        
+        setCsvFile(null)
+        if (csvInputRef.current) csvInputRef.current.value = ''
+        loadCandidates()
+        
+        if (data.errors && data.errors.length > 0) {
+          setMessage({ type: 'success', text: msg + ` Errors: ${data.errors[0]}` })
+        } else {
+          setMessage({ type: 'success', text: msg })
+        }
+      } catch (err) {
+        setMessage({ type: 'error', text: err.message })
+      } finally {
+        setCsvUploading(false)
       }
-
-      setCsvFile(null)
-      if (csvInputRef.current) csvInputRef.current.value = ''
-      loadCandidates()
-      setMessage({ type: 'success', text: `Imported ${data.candidates?.length || 0} candidates` })
-    } catch (err) {
-      setMessage({ type: 'error', text: err.message })
-    } finally {
+    }
+    reader.onerror = () => {
+      setMessage({ type: 'error', text: 'Failed to read file' })
       setCsvUploading(false)
     }
+    reader.readAsText(csvFile)
   }
 
   return (
@@ -223,6 +278,16 @@ function Candidates() {
                 onChange={(e) => setFormData(p => ({ ...p, party: e.target.value }))}
                 placeholder="Political party"
                 className="w-full bg-surface-50 border border-surface-300 rounded-lg px-3.5 py-2.5 text-surface-800 placeholder-surface-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-surface-600 mb-1.5">Party Logo (Optional)</label>
+              <input
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={(e) => setFormData(p => ({ ...p, logoFile: e.target.files[0] }))}
+                className="w-full bg-surface-50 border border-surface-300 rounded-lg px-3.5 py-2 text-sm text-surface-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
               />
             </div>
 
@@ -367,6 +432,16 @@ function Candidates() {
                   value={editModal.party}
                   onChange={(e) => setEditModal(p => ({ ...p, party: e.target.value }))}
                   className="w-full bg-surface-50 border border-surface-300 rounded-lg px-3.5 py-2.5 text-surface-800 focus:outline-none focus:border-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-surface-600 mb-1.5">Update Logo (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg"
+                  onChange={(e) => setEditModal(p => ({ ...p, logoFile: e.target.files[0] }))}
+                  className="w-full bg-surface-50 border border-surface-300 rounded-lg px-3.5 py-2 text-sm text-surface-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                 />
               </div>
 

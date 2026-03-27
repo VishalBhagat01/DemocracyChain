@@ -1,259 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VoteChain — Cast Your Vote</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap"
-        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'sans-serif'] },
+            colors: {
+              primary: { 50: '#f0f7ff', 600: '#0069c8', 700: '#0154a2' },
+              surface: { 50: '#fafaf9', 100: '#f4f4f2', 200: '#e7e5e2', 300: '#d5d2cd', 500: '#716d66', 800: '#27251f' }
+            },
+            boxShadow: { card: '0 1px 2px -1px rgb(0 0 0 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.04)' }
+          }
+        }
+      }
+    </script>
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0f0c29 0%, #1a1a4e 50%, #24243e 100%);
-            color: #fff;
-            padding: 40px 20px;
-        }
-
-        .header {
-            max-width: 800px;
-            margin: 0 auto 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo {
-            font-size: 22px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo span {
-            font-size: 28px;
-        }
-
-        #voterBadge {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
-            background: rgba(255, 255, 255, 0.07);
-            padding: 6px 14px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .selector-panel {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-        }
-
-        select {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            padding: 12px;
-            color: #fff;
-            font-family: inherit;
-            outline: none;
-        }
-
-        select option {
-            background: #1a1a4e;
-        }
-
-        .election-info {
-            background: linear-gradient(135deg, rgba(108, 99, 255, 0.2), rgba(59, 28, 183, 0.1));
-            border: 1px solid rgba(108, 99, 255, 0.3);
-            border-radius: 20px;
-            padding: 28px 32px;
-            margin-bottom: 32px;
-        }
-
-        .election-info h1 {
-            font-size: 26px;
-            font-weight: 800;
-            margin-bottom: 6px;
-        }
-
-        .election-info .dates {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-top: 8px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            background: rgba(0, 212, 100, 0.15);
-            color: #00d464;
-            border: 1px solid rgba(0, 212, 100, 0.3);
-            border-radius: 30px;
-            padding: 4px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .section-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.7);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
-        }
-
-        .candidate-grid {
-            display: grid;
-            gap: 14px;
-            margin-bottom: 32px;
-        }
-
-        .candidate-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 2px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 20px 24px;
-            cursor: pointer;
-            transition: all .2s;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .candidate-card:hover {
-            border-color: rgba(108, 99, 255, 0.5);
-            background: rgba(108, 99, 255, 0.08);
-            transform: translateY(-2px);
-        }
-
-        .candidate-card.selected {
-            border-color: #6c63ff;
-            background: rgba(108, 99, 255, 0.15);
-            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
-        }
-
-        .candidate-avatar {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6c63ff, #3b1cb7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .candidate-info h3 {
-            font-size: 17px;
-            font-weight: 700;
-        }
-
-        .candidate-info p {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.55);
-            margin-top: 3px;
-        }
-
-        .vote-btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #6c63ff, #3b1cb7);
-            color: #fff;
-            border: none;
-            border-radius: 16px;
-            font-size: 17px;
-            font-weight: 700;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all .2s;
-        }
-
-        .vote-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 32px rgba(108, 99, 255, 0.5);
-        }
-
-        .vote-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .status-box {
-            margin-top: 24px;
-            padding: 20px 24px;
-            border-radius: 16px;
-            font-size: 14px;
-            line-height: 1.6;
-            animation: fadeIn .3s ease;
-        }
-
-        .status-box.success {
-            background: rgba(0, 212, 100, 0.1);
-            border: 1px solid rgba(0, 212, 100, 0.3);
-            color: #00d464;
-        }
-
-        .status-box.error {
-            background: rgba(255, 93, 93, 0.1);
-            border: 1px solid rgba(255, 93, 93, 0.3);
-            color: #ff5d5d;
-        }
-
-        .status-box.info {
-            background: rgba(108, 99, 255, 0.1);
-            border: 1px solid rgba(108, 99, 255, 0.3);
-            color: #a09af8;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
-        }
-
-        .tx-code {
-            font-family: monospace;
-            font-size: 12px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin-top: 10px;
-            word-break: break-all;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
         .video-container {
             position: relative;
             width: 100%;
@@ -263,85 +31,104 @@
             overflow: hidden;
             margin-top: 24px;
             margin-bottom: 24px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #e7e5e2;
             display: none;
         }
-
-        .video-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
-
-        .video-container canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-        }
+        .video-container video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .video-container canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-
-<body>
-    <div class="header">
-        <div class="logo"><span>🗳️</span> VoteChain</div>
-        <span id="voterBadge">Authenticating...</span>
+<body class="bg-surface-50 min-h-screen font-sans antialiased text-surface-800 p-4 md:p-10">
+    <div class="max-w-3xl mx-auto flex items-center justify-between mb-8">
+        <div class="flex items-center gap-2 text-xl font-extrabold text-surface-800">
+            <span class="text-2xl">🗳️</span> VoteChain
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="voterBadge" class="text-sm px-4 py-2 bg-white border border-surface-200 rounded-full font-medium shadow-sm">Authenticating...</span>
+            <button onclick="goToProfile()" class="text-sm px-4 py-2 bg-surface-800 hover:bg-surface-700 text-white rounded-full font-medium shadow-sm transition-colors flex items-center gap-1.5">
+                <span>👤</span> Profile
+            </button>
+        </div>
     </div>
 
-    <div class="container">
+    <div class="max-w-3xl mx-auto">
         <!-- GLOBAL SESSION SELECTOR -->
-        <div class="selector-panel" id="sessionSelectorPanel" style="display:none">
-            <span style="font-weight: 700; color: #6c63ff;">Voting Session:</span>
-            <select id="electionIdSelect" onchange="loadElectionData()">
+        <div class="bg-white border border-surface-200 shadow-card rounded-2xl p-5 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4" id="sessionSelectorPanel" style="display:none">
+            <span class="font-bold text-surface-800">Voting Session:</span>
+            <select id="electionIdSelect" onchange="loadElectionData()" class="flex-1 bg-surface-50 border border-surface-300 rounded-xl px-4 py-2.5 text-surface-800 font-medium focus:outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600">
                 <option value="">Loading active sessions...</option>
             </select>
         </div>
 
-        <div id="loading" style="text-align: center; padding: 60px;">
-            <div
-                style="width: 32px; height: 32px; border: 3px solid #3b1cb7; border-top-color: #6c63ff; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px;">
-            </div>
-            Loading blockchain...
+        <div id="loading" class="text-center py-20">
+            <div class="w-10 h-10 border-4 border-surface-200 border-t-primary-600 rounded-full inline-block mb-4 animate-[spin_0.8s_linear_infinite]"></div>
+            <div class="text-surface-500 font-medium">Loading blockchain...</div>
         </div>
 
-        <div id="main" style="display:none">
-            <div class="election-info">
-                <div class="status-badge" id="statusBadge">● Active</div>
-                <h1 id="electionName">–</h1>
-                <div class="dates" id="electionDates">–</div>
+        <div id="main" style="display:none" class="bg-white border border-surface-200 shadow-card rounded-2xl p-6 md:p-8">
+            <div class="bg-surface-50 border border-surface-200 rounded-2xl p-6 md:p-8 mb-8">
+                <div class="inline-block bg-green-100 text-green-700 border border-green-200 rounded-full px-3 py-1 text-xs font-bold mb-3" id="statusBadge">● Active</div>
+                <h1 id="electionName" class="text-2xl md:text-3xl font-extrabold text-surface-800 mb-1">–</h1>
+                <div class="text-sm font-medium text-surface-500" id="electionDates">–</div>
             </div>
 
-            <div class="section-title">Select a Candidate</div>
-            <div class="candidate-grid" id="candidateGrid"></div>
+            <div class="text-xs font-bold text-surface-500 uppercase tracking-wider mb-4">Select a Candidate</div>
+            <div class="grid gap-3 mb-8" id="candidateGrid"></div>
 
-            <button class="vote-btn" id="prepareVoteBtn" onclick="prepareBiometricVote()">Verify Identity and
-                Vote</button>
+            <button id="prepareVoteBtn" onclick="prepareBiometricVote()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl py-4 transition-colors">
+                Verify Identity and Vote
+            </button>
 
             <div id="facePrompt" style="display:none; text-align: center; margin-top: 20px;">
-                <h3 style="margin-bottom: 8px;">Verify Biometric Signature</h3>
-                <p style="color: rgba(255,255,255,0.7); font-size: 14px;">Please center your face in the frame.</p>
+                <h3 class="text-lg font-bold text-surface-800 mb-1">Verify Biometric Signature</h3>
+                <p class="text-sm font-medium text-surface-500 mb-4">Please center your face in the frame.</p>
                 <div class="video-container" id="videoContainer">
                     <video id="video" autoplay muted playsinline></video>
                 </div>
-                <button class="vote-btn" id="voteBtn" style="background: linear-gradient(135deg, #00ca4e, #009838);"
-                    disabled onclick="castVote()">Take Scan &amp; Cast Vote</button>
+                <button id="voteBtn" disabled onclick="castVote()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl py-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Take Scan &amp; Cast Vote
+                </button>
             </div>
 
-            <div id="msg"></div>
+            <div id="msg" class="mt-6 font-medium"></div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@4/dist/web3.min.js"></script>
     <script>
+        function goToProfile() {
+            if (voterToken) {
+                window.location.href = `/profile?Authorization=Bearer%20${encodeURIComponent(voterToken)}`;
+            } else {
+                window.location.href = '/';
+            }
+        }
+
         const EMOJIS = ['🦁', '🦊', '🐺', '🦅', '🌟', '🔥', '⚡', '🌊'];
+        function getPartySymbol(partyName) {
+            if (!partyName) return '👤';
+            const p = partyName.toLowerCase();
+            if (p.includes('bjp') || p.includes('bharatiya')) return '🪷';
+            if (p.includes('inc') || p.includes('congress')) return '✋';
+            if (p.includes('aap') || p.includes('aam aadmi')) return '🧹';
+            if (p.includes('tmc') || p.includes('trinamool')) return '🌿';
+            if (p.includes('dmk') || p.includes('dravida')) return '🌅';
+            if (p.includes('sp') || p.includes('samajwadi')) return '🚲';
+            if (p.includes('jdu') || p.includes('janata dal united')) return '🏹';
+            if (p.includes('ncp') || p.includes('nationalist')) return '🕰️';
+            if (p.includes('jmm') || p.includes('jharkhand')) return '🏹';
+            if (p.includes('cpi') || p.includes('communist')) return '☭';
+            if (p.includes('brs') || p.includes('rashtra samithi')) return '🚗';
+            if (p.includes('shiv') || p.includes('ubt')) return '🔥';
+            
+            return partyName.charAt(0).toUpperCase();
+        }
         let contract, selectedCandidate = null, voterToken = null;
         let modelsLoaded = false, isDetecting = false, videoStream = null;
 
         async function init() {
-            const resp = await fetch('/contract.json');
+            const resp = await fetch('/contract.json?t=' + Date.now());
             const info = await resp.json();
             const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'));
             contract = new web3.eth.Contract(info.abi, info.address);
@@ -363,13 +150,10 @@
 
             if (ids.length === 0) {
                 document.getElementById('loading').innerHTML = `
-                    <div style="text-align:center; padding: 60px 20px;">
-                        <div style="font-size: 56px; margin-bottom: 20px;">🗳️</div>
-                        <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 10px;">No Active Election Session</h2>
-                        <p style="color: rgba(255,255,255,0.5); font-size: 14px; max-width: 360px; margin: 0 auto; line-height: 1.7;">
-                            No voting session has been created yet.<br>
-                            Please wait for the administrator to open an election.
-                        </p>
+                    <div class="text-center py-20 px-5">
+                        <div class="text-6xl mb-6">🗳️</div>
+                        <h2 class="text-2xl font-extrabold text-surface-800 mb-3">No Active Election Session</h2>
+                        <p class="text-surface-500 font-medium max-w-sm mx-auto">No voting session has been created yet.<br>Please wait for the administrator to open an election.</p>
                     </div>`;
                 return;
             }
@@ -415,15 +199,26 @@
                 for (let i = 1; i <= count; i++) {
                     const c = await contract.methods.getCandidate(electionId, i).call();
                     if (Number(c[0]) === 0) continue; // Skip deleted candidates
+                    
+                    const partySlug = c[2].toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const partySymbol = getPartySymbol(c[2]);
+
                     const card = document.createElement('div');
-                    card.className = 'candidate-card';
+                    card.className = 'bg-white border-2 border-surface-200 hover:border-primary-600 rounded-xl p-4 md:p-5 cursor-pointer transition-all flex items-center gap-4';
                     card.innerHTML = `
-                        <div class="candidate-avatar">${EMOJIS[(i - 1) % EMOJIS.length]}</div>
-                        <div class="candidate-info"><h3>${c[1]}</h3><p>${c[2]}</p></div>
+                        <div class="relative w-12 h-12 shrink-0">
+                            <div class="absolute inset-0 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center text-2xl border border-primary-100 shadow-sm">${partySymbol}</div>
+                            <img src="/public/logos/${partySlug}.png" alt="${c[2]}" class="absolute inset-0 w-12 h-12 rounded-full object-cover z-10" onerror="this.style.display='none'" />
+                        </div>
+                        <div><h3 class="font-bold text-surface-800 text-lg">${c[1]}</h3><p class="text-sm font-medium text-surface-500">${c[2]}</p></div>
                     `;
                     card.onclick = () => {
-                        document.querySelectorAll('.candidate-card').forEach(el => el.classList.remove('selected'));
-                        card.classList.add('selected');
+                        document.querySelectorAll('#candidateGrid > div').forEach(el => {
+                            el.classList.remove('border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-600/20');
+                            el.classList.add('border-surface-200', 'bg-white');
+                        });
+                        card.classList.remove('border-surface-200', 'bg-white');
+                        card.classList.add('border-primary-600', 'bg-primary-50', 'ring-2', 'ring-primary-600/20');
                         selectedCandidate = Number(c[0]);
                     };
                     grid.appendChild(card);
@@ -493,23 +288,26 @@
                 if (res.ok) {
                     if (videoStream) videoStream.getTracks().forEach(t => t.stop());
                     document.getElementById('facePrompt').style.display = 'none';
-                    document.getElementById('msg').innerHTML = `<div class="status-box success">🏆 <strong>Vote Recorded!</strong><br><div class="tx-code">TX: ${data.transactionHash}</div></div>`;
+                    document.getElementById('msg').innerHTML = `
+                        <div class="bg-green-50 border border-green-200 text-green-700 rounded-xl p-5 text-left mb-4 shadow-sm">
+                            🏆 <strong class="ml-1">Vote Recorded!</strong><br>
+                            <div class="font-mono text-xs bg-white border border-green-200 px-3 py-2 rounded-lg mt-3 break-all text-surface-800">
+                                TX: ${data.transactionHash}
+                            </div>
+                        </div>`;
                 } else {
                     alert(data.error);
                     btn.disabled = false;
+                    btn.textContent = 'Take Scan & Cast Vote';
                 }
-            } catch (e) { alert(e.message); btn.disabled = false; }
+            } catch (e) { 
+                alert(e.message); 
+                btn.disabled = false; 
+                btn.textContent = 'Take Scan & Cast Vote';
+            }
         }
 
         window.onload = init;
     </script>
-    <style>
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
 </body>
-
 </html>

@@ -1,241 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Ethereum Voting — Login</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
-  <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #0f0c29 0%, #1a1a4e 50%, #24243e 100%);
-      overflow: hidden;
-    }
-
-    /* Animated background blobs */
-    body::before,
-    body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.15;
-      animation: drift 10s ease-in-out infinite alternate;
-    }
-
-    body::before {
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, #6c63ff, #3b1cb7);
-      top: -200px;
-      left: -100px;
-    }
-
-    body::after {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, #00d4ff, #0082ff);
-      bottom: -100px;
-      right: -100px;
-      animation-delay: 5s;
-    }
-
-    @keyframes drift {
-      from {
-        transform: translate(0, 0) scale(1);
-      }
-
-      to {
-        transform: translate(40px, 30px) scale(1.1);
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            primary: { 600: '#0069c8', 700: '#0154a2' },
+            surface: { 50: '#fafaf9', 200: '#e7e5e2', 300: '#d5d2cd', 500: '#716d66', 800: '#27251f' }
+          },
+          boxShadow: { card: '0 1px 2px -1px rgb(0 0 0 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.04)' }
+        }
       }
     }
-
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 24px;
-      padding: 48px 44px;
-      width: 420px;
-      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
-      position: relative;
-      z-index: 10;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 32px;
-    }
-
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, #6c63ff, #3b1cb7);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-
-    .logo-text {
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .logo-sub {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 2px;
-    }
-
-    h1 {
-      font-size: 28px;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-
-    p.sub {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.55);
-      margin-bottom: 36px;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.7);
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      padding: 14px 18px;
-      color: #fff;
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color .2s, box-shadow .2s;
-      margin-bottom: 20px;
-    }
-
-    input:focus {
-      border-color: #6c63ff;
-      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
-    }
-
-    input::placeholder {
-      color: rgba(255, 255, 255, 0.3);
-    }
-
-    button {
-      width: 100%;
-      background: linear-gradient(135deg, #6c63ff, #3b1cb7);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 15px;
-      font-size: 16px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      transition: transform .15s, box-shadow .2s;
-      margin-top: 4px;
-    }
-
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(108, 99, 255, 0.45);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      margin-top: 12px;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 8px 24px rgba(255, 255, 255, 0.1);
-    }
-
-    .error {
-      color: #ff6b6b;
-      font-size: 13px;
-      margin-top: -12px;
-      margin-bottom: 16px;
-      display: none;
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 28px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.35);
-    }
-
-    .footer a {
-      color: rgba(108, 99, 255, 0.8);
-      text-decoration: none;
-    }
-  </style>
+  </script>
 </head>
-
-<body>
-  <div class="card">
-    <div class="logo">
-      <div class="logo-icon">🗳️</div>
+<body class="bg-surface-50 min-h-screen flex items-center justify-center font-sans antialiased p-4">
+  <div class="bg-white border border-surface-200 rounded-2xl shadow-card p-10 w-full max-w-md">
+    <div class="flex items-center gap-3 mb-8">
+      <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-xl text-white">🗳️</div>
       <div>
-        <div class="logo-text">VoteChain</div>
-        <div class="logo-sub">Decentralized Voting on Ethereum</div>
+        <div class="text-xl font-bold text-surface-800">VoteChain</div>
+        <div class="text-xs text-surface-500 mt-0.5">Decentralized Voting on Ethereum</div>
       </div>
     </div>
-
-    <h1>Welcome back</h1>
-    <p class="sub">Sign in to access the voting portal</p>
-
-    <label for="voter_id">Voter ID</label>
-    <input type="text" id="voter_id" placeholder="e.g. voter001" autocomplete="username" />
-
-    <label for="password">Password</label>
-    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
-
-    <p class="error" id="err">Invalid credentials. Please try again.</p>
-
-    <button id="loginBtn" onclick="login()">Sign In →</button>
-    <button class="btn-secondary" onclick="window.location.href='/register'">Register New Voter</button>
-
-    <div class="footer">
-      Secured by Ethereum Blockchain &bull; <a href="https://ethereum.org" target="_blank">Learn more</a>
+    
+    <h1 class="text-2xl font-extrabold text-surface-800 mb-2">Welcome back</h1>
+    <p class="text-sm text-surface-500 mb-8">Sign in to access the voting portal</p>
+    
+    <label class="block text-xs font-semibold text-surface-800 uppercase tracking-wide mb-2">Voter ID</label>
+    <input type="text" id="voter_id" class="w-full bg-white border border-surface-300 rounded-xl px-4 py-3 text-surface-800 mb-5 focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/20" placeholder="e.g. adhaar_1234">
+    
+    <label class="block text-xs font-semibold text-surface-800 uppercase tracking-wide mb-2">Password</label>
+    <input type="password" id="password" class="w-full bg-white border border-surface-300 rounded-xl px-4 py-3 text-surface-800 mb-5 focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/20" placeholder="••••••••">
+    
+    <p class="text-red-500 text-sm mb-4 hidden font-medium" id="err">Invalid credentials. Please try again.</p>
+    
+    <button id="loginBtn" onclick="login()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl py-3.5 transition-colors mt-1">Sign In →</button>
+    
+    <button class="w-full bg-white border border-surface-200 hover:bg-surface-50 text-surface-800 font-semibold rounded-xl py-3.5 mt-3 transition-colors" onclick="window.location.href='/register'">Register New Voter</button>
+    
+    <div class="text-center mt-8 text-xs text-surface-500 font-medium">
+      Secured by Ethereum Blockchain &bull; <a href="https://ethereum.org" target="_blank" class="text-primary-600 hover:underline">Learn more</a>
     </div>
   </div>
 
@@ -244,8 +55,8 @@
       const voter_id = document.getElementById('voter_id').value.trim();
       const password = document.getElementById('password').value;
       const errEl = document.getElementById('err');
-      errEl.style.display = 'none';
-      if (!voter_id || !password) { errEl.textContent = 'Please enter both fields.'; errEl.style.display = 'block'; return; }
+      errEl.classList.add('hidden');
+      if (!voter_id || !password) { errEl.textContent = 'Please enter both fields.'; errEl.classList.remove('hidden'); return; }
 
       try {
         const res = await fetch('/login', {
@@ -260,11 +71,10 @@
         window.location.href = `${dest}?Authorization=Bearer%20${encodeURIComponent(data.token)}`;
       } catch (e) {
         errEl.textContent = e.message;
-        errEl.style.display = 'block';
+        errEl.classList.remove('hidden');
       }
     }
     document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
   </script>
 </body>
-
 </html>

@@ -162,10 +162,9 @@ function Voters() {
         </div>
 
         {csvMessage.text && (
-          <div className={`mt-4 text-sm px-3 py-2 rounded-lg ${
-            csvMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-            'bg-red-50 text-red-700 border border-red-200'
-          }`}>
+          <div className={`mt-4 text-sm px-3 py-2 rounded-lg ${csvMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+              'bg-red-50 text-red-700 border border-red-200'
+            }`}>
             {csvMessage.text}
           </div>
         )}
@@ -179,11 +178,10 @@ function Voters() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  filter === f
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filter === f
                     ? 'bg-primary-600 text-white'
                     : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
-                }`}
+                  }`}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
@@ -232,11 +230,10 @@ function Voters() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium text-surface-800">{v.full_name || 'Anonymous'}</h3>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                        v.status === 'approved'
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${v.status === 'approved'
                           ? 'bg-green-100 text-green-700'
                           : 'bg-amber-100 text-amber-700'
-                      }`}>
+                        }`}>
                         {v.status}
                       </span>
                     </div>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VoteChain — My Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'sans-serif'] },
+            colors: {
+              primary: { 50: '#f0f7ff', 600: '#0069c8', 700: '#0154a2' },
+              surface: { 50: '#fafaf9', 100: '#f4f4f2', 200: '#e7e5e2', 300: '#d5d2cd', 500: '#716d66', 800: '#27251f' }
+            },
+            boxShadow: { card: '0 1px 2px -1px rgb(0 0 0 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.04)' }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-surface-50 min-h-screen font-sans antialiased text-surface-800 p-4 md:p-10">
+    <div class="max-w-3xl mx-auto flex items-center justify-between mb-8">
+        <button onclick="goToVote()" class="flex items-center gap-2 text-xl font-extrabold text-surface-800 hover:text-primary-600 transition-colors">
+            <span class="text-2xl">🗳️</span> VoteChain
+        </button>
+        <button onclick="logout()" class="text-sm px-4 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-full font-medium shadow-sm transition-colors">
+            Logout
+        </button>
+    </div>
+
+    <div class="max-w-3xl mx-auto space-y-6">
+        <!-- Profile Card -->
+        <div class="bg-white border border-surface-200 shadow-card rounded-2xl p-6 md:p-8">
+            <h1 class="text-2xl font-extrabold text-surface-800 mb-6">Voter Profile</h1>
+            
+            <div id="loadingProfile" class="py-8 text-center text-surface-500 font-medium tracking-wide">
+                Loading profile data...
+            </div>
+
+            <div id="profileData" style="display:none;" class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <p class="text-xs font-bold text-surface-500 uppercase tracking-wider mb-1">Full Name</p>
+                    <p id="pName" class="text-lg font-semibold text-surface-800">-</p>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-surface-500 uppercase tracking-wider mb-1">Voter ID</p>
+                    <p id="pVoterId" class="text-lg font-semibold text-surface-800">-</p>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-surface-500 uppercase tracking-wider mb-1">Designated Booth</p>
+                    <p id="pBooth" class="text-lg font-semibold text-primary-600">-</p>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-surface-500 uppercase tracking-wider mb-1">Role</p>
+                    <p class="inline-block bg-primary-50 text-primary-700 px-2.5 py-0.5 rounded-md text-sm font-semibold capitalize mt-1" id="pRole">-</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voting Receipts -->
+        <div class="bg-white border border-surface-200 shadow-card rounded-2xl p-6 md:p-8">
+            <h2 class="text-xl font-bold text-surface-800 mb-4">Blockchain Voting Receipts</h2>
+            <p class="text-sm text-surface-500 mb-6">Your immutable voting records directly from the Ethereum network.</p>
+            
+            <div id="loadingReceipts" class="py-10 text-center text-surface-500 font-medium">
+                Fetching blockchain records...
+            </div>
+
+            <div id="receiptsList" style="display:none;" class="space-y-4">
+                <!-- Receipts dynamically populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tokenMatch = window.location.search.match(/Authorization=Bearer%20([^&]+)/);
+        let token = localStorage.getItem('token');
+        
+        // If token came via URL, save it and clean URL
+        if (tokenMatch) {
+            token = decodeURIComponent(tokenMatch[1]);
+            localStorage.setItem('token', token);
+            window.history.replaceState({}, document.title, "/profile");
+        }
+
+        if (!token) {
+            window.location.href = "/";
+        }
+
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        async function init() {
+            try {
+                // Fetch basic Profile Info
+                const res = await fetch('/api/me', { headers });
+                if (!res.ok) throw new Error("Failed to load profile");
+                const me = await res.json();
+                
+                document.getElementById('pName').textContent = me.name || me.full_name;
+                document.getElementById('pVoterId').textContent = me.id;
+                document.getElementById('pRole').textContent = me.role;
+                document.getElementById('pBooth').textContent = me.booth ? me.booth.replace('_', ' ') : 'Unassigned';
+                
+                document.getElementById('loadingProfile').style.display = 'none';
+                document.getElementById('profileData').style.display = 'grid';
+
+                // Fetch Receipts
+                const recRes = await fetch('/api/my-receipts', { headers });
+                const receipts = await recRes.ok ? await recRes.json() : [];
+
+                const rList = document.getElementById('receiptsList');
+                document.getElementById('loadingReceipts').style.display = 'none';
+                rList.style.display = 'block';
+
+                if (receipts.length === 0) {
+                    rList.innerHTML = `
+                        <div class="bg-surface-50 border border-surface-200 rounded-xl p-8 text-center">
+                            <div class="text-3xl mb-2">📄</div>
+                            <p class="text-surface-600 font-medium text-sm">You haven't cast any votes yet.</p>
+                        </div>
+                    `;
+                } else {
+                    rList.innerHTML = receipts.map(r => `
+                        <div class="bg-surface-50 border border-surface-200 rounded-xl p-5 break-words">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">✓ Verified</span>
+                                <span class="text-sm font-semibold text-surface-800">Election ID: ${r.election_id}</span>
+                            </div>
+                            <p class="text-xs text-surface-500 font-medium mb-1">Transaction Hash:</p>
+                            <a href="https://etherscan.io/tx/${r.tx_hash}" target="_blank" class="text-xs font-mono text-primary-600 hover:text-primary-700 underline block mb-3">${r.tx_hash}</a>
+                            <p class="text-xs text-surface-400">Recorded on: ${new Date(r.created_at).toLocaleString()}</p>
+                        </div>
+                    `).join('');
+                }
+
+            } catch(e) {
+                console.error(e);
+                alert("Session expired. Please login again.");
+                logout();
+            }
+        }
+
+        function goToVote() {
+            window.location.href = `/vote?Authorization=Bearer%20${encodeURIComponent(token)}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+
+        init();
+    </script>
+</body>
+</html>

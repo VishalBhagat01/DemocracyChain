@@ -78,7 +78,8 @@ function Home() {
         })
         if (res.ok) {
           const voters = await res.json()
-          setStats(prev => ({ ...prev, voters: voters.length }))
+          const realVoters = voters.filter(v => v.role !== 'admin')
+          setStats(prev => ({ ...prev, voters: realVoters.length }))
         }
       } catch (err) {
         console.warn('Failed to fetch stats:', err.message)
