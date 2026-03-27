@@ -31,38 +31,29 @@ async function main() {
     await client.query(initSQL);
     console.log('    Fresh schema created.');
 
-    // 3. Seed admin and sample voters
-    console.log('\n🌱  Seeding users...');
+    // 3. Seed admin account only (voters are loaded via CSV in the admin panel)
+    console.log('\n  Seeding admin account...');
     const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
-    const BCRYPT_ROUNDS = 12; // Consistent salt rounds for all passwords
+    const BCRYPT_ROUNDS = 12;
 
-    const sampleVoters = [
-        { voter_id: 'admin', password: adminPassword, role: 'admin', full_name: 'System Admin', email: 'admin@system.local', booth_id: 'ALL', status: 'approved' },
-        { voter_id: 'voter001', password: 'Voter@001', role: 'voter', full_name: 'Rahul Sharma', email: 'rahul@example.com', booth_id: 'BOOTH001', status: 'approved' },
-        { voter_id: 'voter002', password: 'Voter@002', role: 'voter', full_name: 'Priya Patel', email: 'priya@example.com', booth_id: 'BOOTH001', status: 'approved' },
-        { voter_id: 'voter003', password: 'Voter@003', role: 'voter', full_name: 'Amit Singh', email: 'amit@example.com', booth_id: 'BOOTH002', status: 'approved' },
-        { voter_id: 'voter004', password: 'Voter@004', role: 'voter', full_name: 'Neha Gupta', email: 'neha@example.com', booth_id: 'BOOTH002', status: 'approved' },
-        { voter_id: 'voter005', password: 'Voter@005', role: 'voter', full_name: 'Vikram Reddy', email: 'vikram@example.com', booth_id: 'BOOTH003', status: 'approved' }
-    ];
-
-    for (const v of sampleVoters) {
-        const hash = await bcrypt.hash(v.password, BCRYPT_ROUNDS);
-        await client.query(`
-          INSERT INTO voters(voter_id, hashed_password, role, full_name, email, booth_id, status)
-          VALUES($1, $2, $3, $4, $5, $6, $7)
-          ON CONFLICT(voter_id) DO UPDATE SET hashed_password = EXCLUDED.hashed_password, role = EXCLUDED.role, full_name = EXCLUDED.full_name, email = EXCLUDED.email, booth_id = EXCLUDED.booth_id, status = EXCLUDED.status;
-        `, [v.voter_id, hash, v.role, v.full_name, v.email, v.booth_id, v.status]);
-        console.log(`    voter created — ${v.voter_id}`);
-    }
+    const hash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
+    await client.query(`
+      INSERT INTO voters(voter_id, hashed_password, role, full_name, email, booth_id, status)
+      VALUES($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT(voter_id) DO UPDATE
+        SET hashed_password = EXCLUDED.hashed_password,
+            role = EXCLUDED.role,
+            full_name = EXCLUDED.full_name,
+            email = EXCLUDED.email,
+            booth_id = EXCLUDED.booth_id,
+            status = EXCLUDED.status;
+    `, ['admin', hash, 'admin', 'System Admin', 'admin@system.local', 'ALL', 'approved']);
+    console.log('    admin account ready.');
 
     await client.end();
-    console.log('\n🎉  Database setup complete!\n');
-    console.log('┌─────────────────────────────────────────────┐');
-    console.log('│  Login credentials:                          │');
-    console.log(`│  admin / ${adminPassword.padEnd(18)} (admin)  │`);
-    console.log('│  voter001 / Voter@001         (voter)        │');
-    console.log('│  voter002 / Voter@002         (voter)        │');
-    console.log('└─────────────────────────────────────────────┘');
+    console.log('\n  Database setup complete!\n');
+    console.log('  Admin login: admin / ' + adminPassword);
+    console.log('  Import voters via the Admin Panel CSV upload.\n');
 }
 
-main().catch(err => { console.error('❌  Setup failed:', err.message); process.exit(1); });
+main().catch(err => { console.error('  Setup failed:', err.message); process.exit(1); });

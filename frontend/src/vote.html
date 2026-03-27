@@ -362,7 +362,15 @@
             select.innerHTML = '';
 
             if (ids.length === 0) {
-                document.getElementById('loading').innerHTML = '❌ No active voting sessions found.';
+                document.getElementById('loading').innerHTML = `
+                    <div style="text-align:center; padding: 60px 20px;">
+                        <div style="font-size: 56px; margin-bottom: 20px;">🗳️</div>
+                        <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 10px;">No Active Election Session</h2>
+                        <p style="color: rgba(255,255,255,0.5); font-size: 14px; max-width: 360px; margin: 0 auto; line-height: 1.7;">
+                            No voting session has been created yet.<br>
+                            Please wait for the administrator to open an election.
+                        </p>
+                    </div>`;
                 return;
             }
 

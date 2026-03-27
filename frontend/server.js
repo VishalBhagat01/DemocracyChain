@@ -403,6 +403,102 @@ app.post("/api/voters", authorizeUser, async (req, res) => {
     }
 });
 
+// ── POST /api/voters/bulk-csv — admin only: import voters from CSV ────────
+// CSV format (with header row):
+//   voter_id,full_name,password,email,booth_id
+app.post("/api/voters/bulk-csv", authorizeUser, async (req, res) => {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const { csv } = req.body;
+    if (!csv || typeof csv !== "string") return res.status(400).json({ message: "csv field required" });
+
+    const lines = csv.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) return res.status(400).json({ message: "CSV must have a header row and at least one data row" });
+
+    // Validate header
+    const header = lines[0].toLowerCase().split(",").map(h => h.trim());
+    const required = ["voter_id", "full_name", "password"];
+    const missing = required.filter(f => !header.includes(f));
+    if (missing.length) return res.status(400).json({ message: `Missing CSV columns: ${missing.join(", ")}` });
+
+    const idxOf = col => header.indexOf(col);
+    const results = { imported: 0, skipped: 0, errors: [] };
+
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",").map(c => c.trim());
+        const voter_id   = cols[idxOf("voter_id")]   || "";
+        const full_name  = cols[idxOf("full_name")]  || "";
+        const password   = cols[idxOf("password")]   || "";
+        const email      = idxOf("email")      >= 0 ? cols[idxOf("email")]      || null : null;
+        const booth_id   = idxOf("booth_id")   >= 0 ? cols[idxOf("booth_id")]   || null : null;
+
+        if (!voter_id || !password) { results.skipped++; results.errors.push(`Row ${i + 1}: voter_id and password required`); continue; }
+
+        try {
+            const hashed = await bcrypt.hash(password, 12);
+            await pool.query(
+                `INSERT INTO voters (voter_id, hashed_password, role, full_name, email, booth_id, status)
+                 VALUES ($1, $2, 'voter', $3, $4, $5, 'approved')
+                 ON CONFLICT (voter_id) DO UPDATE
+                   SET hashed_password = EXCLUDED.hashed_password,
+                       full_name       = EXCLUDED.full_name,
+                       email           = EXCLUDED.email,
+                       booth_id        = EXCLUDED.booth_id,
+                       status          = 'approved'`,
+                [voter_id, hashed, full_name || null, email, booth_id || "DEFAULT"]
+            );
+            results.imported++;
+        } catch (err) {
+            results.skipped++;
+            results.errors.push(`Row ${i + 1} (${voter_id}): ${err.message}`);
+        }
+    }
+
+    res.json({ success: true, ...results });
+});
+
+// ── POST /api/candidates/bulk-csv — admin only: import candidates via CSV ─
+// CSV format (with header row):
+//   name,party
+app.post("/api/candidates/bulk-csv", authorizeUser, async (req, res) => {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const { csv, electionId } = req.body;
+    if (!csv || !electionId) return res.status(400).json({ message: "csv and electionId fields required" });
+    if (!contract || !masterWallet) return res.status(503).json({ message: "Blockchain not ready — restart server after deployment" });
+
+    const lines = csv.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) return res.status(400).json({ message: "CSV must have a header row and at least one data row" });
+
+    const header = lines[0].toLowerCase().split(",").map(h => h.trim());
+    if (!header.includes("name") || !header.includes("party")) {
+        return res.status(400).json({ message: "CSV must have 'name' and 'party' columns" });
+    }
+
+    const idxName  = header.indexOf("name");
+    const idxParty = header.indexOf("party");
+    const results  = { imported: 0, skipped: 0, errors: [] };
+
+    // Fetch nonce once and increment manually to avoid reuse on fast local nodes
+    let nonce = await masterWallet.provider.getTransactionCount(masterWallet.address, "latest");
+
+    for (let i = 1; i < lines.length; i++) {
+        const cols  = lines[i].split(",").map(c => c.trim());
+        const name  = cols[idxName]  || "";
+        const party = cols[idxParty] || "";
+        if (!name || !party) { results.skipped++; results.errors.push(`Row ${i + 1}: name and party required`); continue; }
+
+        try {
+            const tx = await contract.addCandidate(electionId, name, party, { nonce: nonce++ });
+            await tx.wait();
+            results.imported++;
+        } catch (err) {
+            results.skipped++;
+            results.errors.push(`Row ${i + 1} (${name}): ${err.message.split("(")[0].trim()}`);
+        }
+    }
+
+    res.json({ success: true, ...results });
+});
+
 // ── DELETE /api/voters/:id — admin only ─────────────────────────────
 app.delete("/api/voters/:id", authorizeUser, async (req, res) => {
     if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });

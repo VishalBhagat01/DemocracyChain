@@ -23,9 +23,12 @@ check_voters.js
 verify_blockchain.js
 migrate_db.js
 
-# Python cache files
+# Python cache files and virtual environments
 __pycache__/
 *.py[cod]
+venv/
+env/
+.venv/
 
 # Misc logs and OS files
 *.log

@@ -1,216 +1,226 @@
-# VoteChain
+# VoteChain — DemocracyChain
 
-VoteChain is a full-stack voting platform that combines:
+VoteChain is a full-stack decentralized voting platform combining:
 
-- a Solidity smart contract for vote integrity,
-- an Express API for authentication and voting workflow,
-- PostgreSQL for voter identity and audit metadata,
-- optional ML and graph analytics microservices,
-- a React dashboard for operational analytics.
+- A Solidity smart contract for tamper-proof vote integrity
+- An Express API for authentication and voting workflow
+- PostgreSQL (Supabase) for voter identity and audit trails
+- Face biometric verification before vote submission
+- Optional ML congestion prediction and graph analytics microservices
+- A React dashboard for live operational analytics
 
 Core voting data is committed on-chain. User identity, approvals, and audit trails stay in PostgreSQL.
 
-## Features
-
-- Smart contract election lifecycle and candidate management
-- Hash-based anonymous vote recording on Ethereum
-- JWT-based login with admin and voter roles
-- Face embedding verification before vote submission
-- Admin voter approval and voter management endpoints
-- Optional ML congestion predictions and graph analytics services
-
-## Tech Stack
-
-- Node.js + Express
-- Hardhat + Solidity + Ethers
-- PostgreSQL (Supabase or self-hosted)
-- React + Vite (dashboard)
-- FastAPI (ML service and graph service)
-- Neo4j (graph service backend)
+---
 
 ## Prerequisites
 
 - Node.js 18+
-- Python 3.10+
-- PostgreSQL instance
-- MetaMask (for local wallet testing)
-- Neo4j (only if running graph service)
+- Python 3.10+ with pip
+- MetaMask browser extension (for the admin panel)
+- A running PostgreSQL instance (Supabase connection is pre-configured in `.env`)
 
-## Quick Start (Local)
+---
 
-1. **Install dependencies**
+## First-Time Setup
 
-```bash
-# Main project & API dependencies
+### 1. Install dependencies
+
+```powershell
+# Root project
 npm install
 
-# Dashboard dependencies
-cd frontend/apps/dashboard && npm install
-cd ../../../
+# Python virtual environment (run once)
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 
-# ML service dependencies (optional)
-cd frontend/apps/ml-service && pip install -r requirements.txt
-cd ../../../
+# ML service
+pip install -r frontend/apps/ml-service/requirements.txt
 
-# Graph service dependencies (optional)
-cd frontend/apps/graph-service && pip install -r requirements.txt
-cd ../../../
+# Graph service
+pip install -r frontend/apps/graph-service/requirements.txt
+
+# Dashboard
+cd frontend/apps/dashboard && npm install && cd ../../../
 ```
 
-2. **Create environment file**
+### 2. Configure environment
 
-```bash
-cp .env.example .env
-```
+Copy the example and fill in your values:
 
-Windows CMD alternative:
-
-```bat
+```powershell
 copy .env.example .env
 ```
 
-3. **Update required values in `.env`**
+Key variables to set in `.env`:
 
-- `DATABASE_URL`: Your PostgreSQL connection string.
-- `SECRET_KEY`: Random string for JWT.
-- `MASTER_WALLET_PRIVATE_KEY`: Private key of a wallet with test ETH (if using a real testnet).
-- `ETH_RPC_URL`: RPC endpoint (e.g., `http://127.0.0.1:8545`).
-- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`: If using the graph service.
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `SECRET_KEY` | Random string for JWT signing |
+| `MASTER_WALLET_PRIVATE_KEY` | Hardhat account #0 private key (pre-filled for local) |
+| `ETH_RPC_URL` | RPC endpoint (default: `http://127.0.0.1:8545`) |
+| `ADMIN_PASSWORD` | Admin account password (default: `Admin@123`) |
 
-4. **Initialize database schema and seed users**
+### 3. Initialize the database
 
-```bash
+```powershell
 npm run setup:db
 ```
 
-5. **Start local blockchain node (Terminal 1)**
+This creates the schema and seeds the admin account.
 
-```bash
-npm run node
+---
+
+## Running the Project
+
+### One-command startup (recommended)
+
+```powershell
+.\start.ps1
 ```
 
-6. **Compile and deploy contract (Terminal 2)**
+This single script will:
+1. Start the **Hardhat local blockchain** node
+2. Wait 8 seconds for it to initialize
+3. **Deploy the smart contract** (writes `frontend/src/contract.json`)
+4. Start the **Express frontend server** on port 8080
+5. Start the **ML service** on port 8001
+6. Start the **Graph analytics service** on port 8002
+7. Start the **React dashboard** dev server
 
-```bash
-npm run compile
-npm run deploy:local
+> If you get an execution policy error, run once:
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+> ```
+
+### Service URLs
+
+| Service | URL |
+|---|---|
+| Voting App | http://localhost:8080 |
+| Admin Panel | http://localhost:8080/admin |
+| ML Service | http://localhost:8001 |
+| Graph Service | http://localhost:8002 |
+| Dashboard | http://localhost:5173 (check dashboard window) |
+
+---
+
+## Admin Workflow (after startup)
+
+No election data or voters are pre-loaded. The admin sets up everything:
+
+1. Open **http://localhost:8080/admin** → connect MetaMask
+2. **Sessions tab** → Create an election (ID, name, start/end dates) → **Finalize & Deploy**
+3. **Candidates tab** → Select session → add nominees individually OR bulk-import via CSV
+4. **Voters tab** → bulk-import voter list via CSV
+5. Voters log in at **http://localhost:8080** and cast biometric-verified votes
+
+---
+
+## CSV Formats
+
+### Voters CSV — Admin → Voters tab → "Bulk Import"
+
+Required columns: `voter_id`, `full_name`, `password`
+Optional columns: `email`, `booth_id`
+
+```
+voter_id,full_name,password,email,booth_id
+voter101,Arjun Kapoor,Pass@123,arjun@example.com,BOOTH001
+voter102,Sunita Sharma,Pass@456,sunita@example.com,BOOTH002
 ```
 
-This writes contract metadata to `frontend/src/contract.json`.
+- All imported voters are set to **approved** immediately (no manual approval needed)
+- Re-uploading the same `voter_id` updates the record (upsert)
+- A **Download Template** link is available in the admin panel
 
-7. **Start Express API + static web app (Terminal 3)**
+### Candidates CSV — Admin → Candidates tab → "Bulk Import"
 
-```bash
-npm run frontend
+Required columns: `name`, `party`
+
+```
+name,party
+Narendra Modi,Bharatiya Janata Party (BJP)
+Rahul Gandhi,Indian National Congress (INC)
+Arvind Kejriwal,Aam Aadmi Party (AAP)
 ```
 
-App URL: [http://localhost:8080](http://localhost:8080)
+- Candidates are written directly to the **blockchain** via the master wallet
+- Must have an active election session selected first
+- A **Download Template** link is available in the admin panel
 
-8. **Optional: Start dashboard dev server (Terminal 4)**
-
-```bash
-npm run dashboard:dev
-```
-
-Dashboard URL: [http://localhost:5173](http://localhost:5173)
-
-9. **Optional: Start ML service (Terminal 5)**
-
-```bash
-npm run ml:start
-```
-
-10. **Optional: Start & Seed Graph service (Terminal 6)**
-
-```bash
-# Seed the data first
-npm run graph:seed
-
-# Start the service
-npm run graph:start
-```
+---
 
 ## Demo Credentials
 
-The DB seed script creates the following users:
+Only the admin account is seeded by `npm run setup:db`:
 
-- admin / value of ADMIN_PASSWORD (default Admin@123)
-- voter001 / Voter@001
-- voter002 / Voter@002
+| User | Password |
+|---|---|
+| `admin` | Value of `ADMIN_PASSWORD` (default: `Admin@123`) |
 
-## Environment Variables
+All voter accounts must be imported via CSV from the admin panel.
 
-Base server and blockchain:
-
-- MASTER_WALLET_PRIVATE_KEY
-- ETH_RPC_URL
-- DATABASE_URL
-- SECRET_KEY
-- ADMIN_PASSWORD
-
-Dashboard and service URLs:
-
-- VITE_BACKEND_URL (default http://localhost:8080)
-- VITE_ML_URL (default http://localhost:8001)
-- VITE_GRAPH_URL (default http://localhost:8002)
-- ML_SERVICE_URL (default http://localhost:8001)
-
-Graph service:
-
-- NEO4J_URI
-- NEO4J_USER
-- NEO4J_PASSWORD
-
-See .env.example for a full template.
-
-## Available Scripts
-
-- npm run compile: Compile Solidity contracts
-- npm test: Run Hardhat test suite
-- npm run node: Start Hardhat local chain
-- npm run deploy:local: Deploy contract to localhost
-- npm run deploy:ganache: Deploy contract to Ganache
-- npm run frontend: Start Express server
-- npm run setup:db: Reset and initialize PostgreSQL schema
-- npm run dashboard:dev: Run Vite dashboard in dev mode
-- npm run dashboard:build: Build dashboard for production
-- npm run ml:start: Run ML FastAPI service locally
-- npm run graph:start: Run graph FastAPI service locally
-- npm run graph:seed: Seed Neo4j sample graph data
+---
 
 ## Project Structure
 
-```text
-votechain/
-|- contracts/                # Solidity contracts
-|- scripts/                  # Deployment scripts
-|- test/                     # Hardhat tests
-|- database_api/             # SQL and DB initialization scripts
-|- frontend/
-|  |- server.js              # Express API and static host
-|  |- src/                   # Legacy HTML pages + contract.json
-|  |- public/models/         # Face model assets
-|  |- apps/dashboard/        # React dashboard (Vite)
-|  |- apps/ml-service/       # FastAPI ML service
-|  |- apps/graph-service/    # FastAPI Neo4j analytics service
-|- hardhat.config.js
-|- package.json
-|- .env.example
+```
+DemocracyChain/
+├── contracts/               # Solidity smart contracts
+├── scripts/deploy.js        # Contract deployment (no auto-seed)
+├── test/                    # Hardhat test suite
+├── database_api/            # PostgreSQL schema and setup scripts
+├── frontend/
+│   ├── server.js            # Express API + static file host
+│   ├── src/                 # HTML voting pages + contract.json
+│   ├── public/models/       # Face-api.js model files
+│   └── apps/
+│       ├── dashboard/       # React + Vite admin dashboard
+│       ├── ml-service/      # FastAPI voter congestion ML service
+│       └── graph-service/   # FastAPI Neo4j graph analytics
+├── start.ps1                # One-command project launcher
+├── hardhat.config.js
+├── package.json
+└── .env
 ```
 
-## Testnet Deployment Notes
+---
+
+## Available Scripts
+
+| Script | Description |
+|---|---|
+| `.\start.ps1` | Start all services (recommended) |
+| `npm run node` | Start Hardhat local chain only |
+| `npm run deploy:local` | Deploy contract to localhost |
+| `npm run frontend` | Start Express server only |
+| `npm run setup:db` | Initialize PostgreSQL schema |
+| `npm run compile` | Compile Solidity contracts |
+| `npm test` | Run Hardhat test suite |
+| `npm run dashboard:dev` | Run Vite dashboard in dev mode |
+| `npm run ml:start` | Start ML FastAPI service |
+| `npm run graph:start` | Start Graph FastAPI service |
+| `npm run graph:seed` | Seed Neo4j with sample data |
+
+---
+
+## Testnet Deployment
 
 To deploy to a live EVM network:
 
-1. Set ETH_RPC_URL to the target RPC endpoint.
-2. Set MASTER_WALLET_PRIVATE_KEY to a funded deployer key.
+1. Set `ETH_RPC_URL` to the target RPC endpoint
+2. Set `MASTER_WALLET_PRIVATE_KEY` to a funded deployer wallet key
 3. Run:
 
 ```bash
 npx hardhat run scripts/deploy.js --network live
 ```
 
-4. Ensure frontend/src/contract.json is distributed with the deployed address and ABI.
+4. Distribute the updated `frontend/src/contract.json` with the live address and ABI.
+
+---
 
 ## License
 

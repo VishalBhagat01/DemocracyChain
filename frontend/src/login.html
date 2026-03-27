@@ -248,7 +248,11 @@
       if (!voter_id || !password) { errEl.textContent = 'Please enter both fields.'; errEl.style.display = 'block'; return; }
 
       try {
-        const res = await fetch(`/login?voter_id=${encodeURIComponent(voter_id)}&password=${encodeURIComponent(password)}`);
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voter_id, password })
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Login failed');
         // Redirect based on role

@@ -388,6 +388,29 @@
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.2);
         }
+
+        /* ── CSV Upload Card ───────────────────────────────────────────────────── */
+        .csv-drop-zone {
+            border: 2px dashed rgba(108, 99, 255, 0.3);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s;
+            background: rgba(108, 99, 255, 0.04);
+            cursor: pointer;
+            margin-bottom: 14px;
+        }
+        .csv-drop-zone:hover { border-color: #6c63ff; background: rgba(108, 99, 255, 0.08); }
+        .csv-drop-zone input[type="file"] { display: none; }
+        .csv-drop-zone .drop-icon { font-size: 28px; margin-bottom: 8px; }
+        .csv-drop-zone .drop-label { font-size: 13px; color: rgba(255,255,255,0.6); }
+        .csv-drop-zone .drop-hint  { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+        .csv-file-name { font-size: 12px; color: #a09af8; margin-bottom: 10px; min-height: 16px; }
+        .csv-template-link { font-size: 11px; color: rgba(108,99,255,0.7); text-decoration: none; display: inline-block; margin-bottom: 16px; }
+        .csv-template-link:hover { color: #6c63ff; }
+        .csv-result { margin-top: 12px; font-size: 12px; padding: 10px 14px; border-radius: 10px; display: none; }
+        .csv-result.ok  { background: rgba(0,212,100,0.1);  border: 1px solid rgba(0,212,100,0.3);  color: #00d464; }
+        .csv-result.err { background: rgba(255,93,93,0.1);  border: 1px solid rgba(255,93,93,0.3);  color: #ff9090; }
     </style>
 </head>
 
@@ -535,6 +558,7 @@
         <!-- 👤 TAB: Candidates -->
         <div id="tab-candidates" class="tab-content">
             <div class="grid">
+                <!-- Single Add -->
                 <div class="card" style="grid-column: span 4;">
                     <h2>👤 Add Nominee</h2>
                     <div class="form-group">
@@ -547,10 +571,31 @@
                     </div>
                     <button class="btn-primary" onclick="addCandidate()">Add to Election</button>
                     <div id="candMsg" style="margin-top: 16px; font-size: 13px; text-align: center;"></div>
+
+                    <!-- CSV Import -->
+                    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--glass-border);">
+                        <h2 style="margin-bottom: 12px;">📥 Bulk Import via CSV</h2>
+                        <p style="font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 12px; line-height: 1.7;">
+                            Required columns: <code style="color:#a09af8">name, party</code>
+                        </p>
+                        <a class="csv-template-link" download="candidates_template.csv"
+                            href="data:text/csv;charset=utf-8,name%2Cparty%0ANarendra%20Modi%2CBharatiya%20Janata%20Party%20(BJP)%0ARahul%20Gandhi%2CIndian%20National%20Congress%20(INC)"
+                        >⬇ Download CSV Template</a>
+                        <div class="csv-drop-zone" onclick="document.getElementById('candCsvInput').click()">
+                            <input type="file" id="candCsvInput" accept=".csv" onchange="onCandFileSelected(event)">
+                            <div class="drop-icon">📂</div>
+                            <div class="drop-label">Click to select a CSV file</div>
+                            <div class="drop-hint">.csv only</div>
+                        </div>
+                        <div class="csv-file-name" id="candFileName">No file selected</div>
+                        <button class="btn-primary" onclick="uploadCandCsv()" id="candUploadBtn" disabled>Import Candidates</button>
+                        <div class="csv-result" id="candCsvResult"></div>
+                    </div>
                 </div>
+
+                <!-- Nominee List -->
                 <div class="card" style="grid-column: span 8;">
-                    <h2>📝 Nominee Management — <span id="candSessionIdHeader" style="color:var(--primary)">...</span>
-                    </h2>
+                    <h2>📝 Nominee Management — <span id="candSessionIdHeader" style="color:var(--primary)">...</span></h2>
                     <div class="list-container" id="fullCandidateList">Loading candidates...</div>
                 </div>
             </div>
@@ -558,14 +603,36 @@
 
         <!-- 👥 TAB: Voters -->
         <div id="tab-voters" class="tab-content">
+            <!-- CSV Bulk Import -->
+            <div class="card" style="margin-bottom: 24px;">
+                <h2>📥 Bulk Import Voters via CSV</h2>
+                <p style="font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 16px; line-height: 1.7;">
+                    Required columns: <code style="color:#a09af8">voter_id, full_name, password</code>&nbsp;&nbsp;
+                    Optional: <code style="color:#a09af8">email, booth_id</code><br>
+                    All imported voters are set to <strong>approved</strong> immediately.
+                </p>
+                <a class="csv-template-link" id="voterTemplateLink" download="voters_template.csv"
+                    href="data:text/csv;charset=utf-8,voter_id%2Cfull_name%2Cpassword%2Cemail%2Cbooth_id%0Avoter101%2CArjun%20Kapoor%2CPass%40123%2Carjun%40example.com%2CBOOTH001%0Avoter102%2CSunita%20Sharma%2CPass%40456%2Csunita%40example.com%2CBOOTH002"
+                >⬇ Download CSV Template</a>
+                <div class="csv-drop-zone" onclick="document.getElementById('voterCsvInput').click()">
+                    <input type="file" id="voterCsvInput" accept=".csv" onchange="onVoterFileSelected(event)">
+                    <div class="drop-icon">📂</div>
+                    <div class="drop-label">Click to select a CSV file</div>
+                    <div class="drop-hint">Max one file • .csv only</div>
+                </div>
+                <div class="csv-file-name" id="voterFileName">No file selected</div>
+                <button class="btn-primary" onclick="uploadVoterCsv()" id="voterUploadBtn" disabled>Import Voters</button>
+                <div class="csv-result" id="voterCsvResult"></div>
+            </div>
+
+            <!-- Voter List -->
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-                    <h2>👥 Verification Queue</h2>
+                    <h2>👥 Registered Voters</h2>
                     <button class="btn-action btn-edit" onclick="loadVoters()"
-                        style="background:rgba(255,255,255,0.05); color:#fff; padding:10px 20px;">🔄 Sync
-                        Database</button>
+                        style="background:rgba(255,255,255,0.05); color:#fff; padding:10px 20px;">🔄 Sync Database</button>
                 </div>
-                <div class="list-container" id="votersList">Loading voter list...</div>
+                <div class="list-container" id="votersList">No voters yet. Import a CSV above.</div>
             </div>
         </div>
     </main>
@@ -831,6 +898,104 @@
 
         async function approveVoter(id, token) { await fetch(`/api/voters/${id}/approve`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } }); loadVoters(); }
         async function deleteVoter(id, token) { if (confirm(`Revoke all access for ${id}?`)) { await fetch(`/api/voters/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); loadVoters(); } }
+
+        // ── CSV Upload helpers ───────────────────────────────────────────────
+        let voterCsvText = null;
+        let candCsvText  = null;
+
+        function getToken() {
+            const m = window.location.search.match(/Authorization=Bearer%20([^&]+)/);
+            return m ? decodeURIComponent(m[1]) : '';
+        }
+
+        function onVoterFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('voterFileName').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                voterCsvText = ev.target.result;
+                const rows = voterCsvText.split(/\r?\n/).filter(l => l.trim()).length - 1;
+                document.getElementById('voterUploadBtn').disabled = false;
+                document.getElementById('voterUploadBtn').textContent = `Import Voters (${rows} rows)`;
+            };
+            reader.readAsText(file);
+        }
+
+        async function uploadVoterCsv() {
+            const btn = document.getElementById('voterUploadBtn');
+            const result = document.getElementById('voterCsvResult');
+            if (!voterCsvText) return;
+            btn.disabled = true; btn.textContent = 'Uploading...'; result.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/voters/bulk-csv', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                    body: JSON.stringify({ csv: voterCsvText })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    result.className = 'csv-result ok';
+                    result.innerHTML = `Imported ${data.imported} voter(s). Skipped ${data.skipped}.`
+                        + (data.errors.length ? `<br><small>${data.errors.join('<br>')}</small>` : '');
+                    loadVoters();
+                } else {
+                    result.className = 'csv-result err';
+                    result.textContent = data.message || 'Upload failed';
+                }
+            } catch (e) {
+                result.className = 'csv-result err';
+                result.textContent = 'Network error: ' + e.message;
+            }
+            result.style.display = 'block';
+            btn.textContent = 'Import Voters'; btn.disabled = false;
+        }
+
+        function onCandFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('candFileName').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                candCsvText = ev.target.result;
+                const rows = candCsvText.split(/\r?\n/).filter(l => l.trim()).length - 1;
+                document.getElementById('candUploadBtn').disabled = false;
+                document.getElementById('candUploadBtn').textContent = `Import Candidates (${rows} rows)`;
+            };
+            reader.readAsText(file);
+        }
+
+        async function uploadCandCsv() {
+            if (!candCsvText) return;
+            if (!activeElectionId) { alert('Select an active election session first.'); return; }
+            const btn = document.getElementById('candUploadBtn');
+            const result = document.getElementById('candCsvResult');
+            btn.disabled = true; btn.textContent = 'Uploading to blockchain...'; result.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/candidates/bulk-csv', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                    body: JSON.stringify({ csv: candCsvText, electionId: activeElectionId })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    result.className = 'csv-result ok';
+                    result.innerHTML = `Added ${data.imported} candidate(s) to blockchain. Skipped ${data.skipped}.`
+                        + (data.errors.length ? `<br><small>${data.errors.join('<br>')}</small>` : '');
+                    loadStandings(); loadFullCandidateList();
+                } else {
+                    result.className = 'csv-result err';
+                    result.textContent = data.message || 'Upload failed';
+                }
+            } catch (e) {
+                result.className = 'csv-result err';
+                result.textContent = 'Network error: ' + e.message;
+            }
+            result.style.display = 'block';
+            btn.textContent = 'Import Candidates'; btn.disabled = false;
+        }
 
         init();
     </script>
