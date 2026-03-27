@@ -67,6 +67,12 @@ Write-Host "  Hardhat Node    : http://127.0.0.1:8545" -ForegroundColor White
 Write-Host "  Frontend Server : http://localhost:8080"  -ForegroundColor White
 Write-Host "  ML Service      : http://localhost:8001"  -ForegroundColor White
 Write-Host "  Graph Service   : http://localhost:8002"  -ForegroundColor White
-Write-Host "  Dashboard       : check the dashboard window for port" -ForegroundColor White
+Write-Host "  Dashboard       : http://localhost:5173"  -ForegroundColor White
+Write-Host ""
+Write-Host "  Login credentials:" -ForegroundColor Yellow
+Write-Host "  - Admin: admin / Admin@123" -ForegroundColor White
+Write-Host "    (Elections, Candidates, Voters, Booths, Analytics)" -ForegroundColor DarkGray
+Write-Host "  - Voter: voter001 / Voter@001" -ForegroundColor White
+Write-Host "    (Vote, Results, Receipt, Profile)" -ForegroundColor DarkGray
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""

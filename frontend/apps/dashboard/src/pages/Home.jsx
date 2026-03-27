@@ -1,55 +1,40 @@
 import { useState, useEffect } from 'react'
-import { backendUrl, isAdmin, getAuthHeaders } from '../auth'
+import { Link } from 'react-router-dom'
+import { isAdmin, getAuthHeaders, getUser } from '../auth'
 import { config } from '../config'
 
-function StatusDot({ status }) {
+function StatusIndicator({ status }) {
   if (status === 'checking') {
     return (
-      <span className="flex items-center gap-2 text-amber-600">
-        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft" />
-        Checking...
+      <span className="flex items-center gap-2 text-amber-600 text-sm">
+        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+        Checking
       </span>
     )
   }
   if (status === 'online') {
     return (
-      <span className="flex items-center gap-2 text-green-600">
+      <span className="flex items-center gap-2 text-green-600 text-sm">
         <span className="w-2 h-2 rounded-full bg-green-500" />
         Online
       </span>
     )
   }
   return (
-    <span className="flex items-center gap-2 text-red-600">
+    <span className="flex items-center gap-2 text-red-600 text-sm">
       <span className="w-2 h-2 rounded-full bg-red-500" />
       Offline
     </span>
   )
 }
 
-function StatCard({ label, value, subtext, color, delay }) {
-  const colorClasses = {
-    blue: 'border-primary-200 hover:border-primary-400 text-primary-600',
-    green: 'border-green-200 hover:border-green-400 text-green-600',
-    purple: 'border-purple-200 hover:border-purple-400 text-purple-600',
-  }
-
-  return (
-    <div
-      className={`bg-white border-2 ${colorClasses[color].split(' ')[0]} rounded-xl p-6 shadow-card card-hover animate-fadeIn ${delay}`}
-    >
-      <p className="text-surface-500 text-sm font-medium">{label}</p>
-      <p className={`text-4xl font-bold mt-2 ${colorClasses[color].split(' ').slice(-1)}`}>{value}</p>
-      <p className="text-surface-400 text-xs mt-2">{subtext}</p>
-    </div>
-  )
-}
-
 function Home() {
+  const admin = isAdmin()
+  const user = getUser()
+
   const [stats, setStats] = useState({
-    booths: 6,
-    voters: 1250,
-    transactions: 847,
+    voters: 0,
+    elections: 0,
   })
 
   const [health, setHealth] = useState({
@@ -64,8 +49,7 @@ function Home() {
       try {
         const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3000) })
         setHealth(prev => ({ ...prev, [key]: res.ok ? 'online' : 'offline' }))
-      } catch (err) {
-        console.warn(`Health check failed for ${key}:`, err.message)
+      } catch {
         setHealth(prev => ({ ...prev, [key]: 'offline' }))
       }
     }
@@ -83,8 +67,10 @@ function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch actual stats from backend
+  // Fetch stats for admin
   useEffect(() => {
+    if (!admin) return
+
     const fetchStats = async () => {
       try {
         const res = await fetch(`${config.backendUrl}/api/voters`, {
@@ -95,130 +81,161 @@ function Home() {
           setStats(prev => ({ ...prev, voters: voters.length }))
         }
       } catch (err) {
-        console.warn('Failed to fetch voter stats:', err.message)
+        console.warn('Failed to fetch stats:', err.message)
       }
     }
+    fetchStats()
+  }, [admin])
 
-    if (isAdmin()) {
-      fetchStats()
-    }
-  }, [])
+  // Admin Dashboard
+  if (admin) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-surface-800">Dashboard</h1>
+          <p className="text-surface-500 mt-1">System overview and quick actions</p>
+        </div>
 
-  const admin = isAdmin()
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white border border-surface-200 rounded-xl p-5 shadow-card">
+            <p className="text-sm text-surface-500">Registered Voters</p>
+            <p className="text-3xl font-semibold text-surface-800 mt-1">{stats.voters}</p>
+          </div>
+          <div className="bg-white border border-surface-200 rounded-xl p-5 shadow-card">
+            <p className="text-sm text-surface-500">Backend Status</p>
+            <div className="mt-2">
+              <StatusIndicator status={health.backend} />
+            </div>
+          </div>
+          <div className="bg-white border border-surface-200 rounded-xl p-5 shadow-card">
+            <p className="text-sm text-surface-500">ML Service</p>
+            <div className="mt-2">
+              <StatusIndicator status={health.ml} />
+            </div>
+          </div>
+        </div>
 
-  const quickLinks = [
-    {
-      href: backendUrl('/vote'),
-      icon: '🗳️',
-      title: 'Vote',
-      description: 'Cast your vote securely on-chain',
-      color: 'blue',
-      show: true,
-    },
-    {
-      href: backendUrl('/admin'),
-      icon: '🔐',
-      title: 'Admin Panel',
-      description: 'Manage voters, approve registrations',
-      color: 'red',
-      show: admin,
-    },
-    {
-      href: backendUrl('/results'),
-      icon: '📊',
-      title: 'Live Results',
-      description: 'Real-time vote counts from blockchain',
-      color: 'green',
-      show: true,
-    },
-    {
-      href: backendUrl('/register'),
-      icon: '📝',
-      title: 'Register',
-      description: 'Register new voter with face biometrics',
-      color: 'amber',
-      show: admin,
-    },
-  ]
+        {/* Quick Actions */}
+        <div className="bg-white border border-surface-200 rounded-xl p-6 shadow-card">
+          <h2 className="text-lg font-medium text-surface-800 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Link
+              to="/elections"
+              className="flex flex-col items-center gap-2 p-4 bg-surface-50 rounded-lg border border-surface-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
+            >
+              <span className="text-2xl">📅</span>
+              <span className="text-sm font-medium text-surface-700 group-hover:text-primary-700">Elections</span>
+            </Link>
+            <Link
+              to="/candidates"
+              className="flex flex-col items-center gap-2 p-4 bg-surface-50 rounded-lg border border-surface-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
+            >
+              <span className="text-2xl">👤</span>
+              <span className="text-sm font-medium text-surface-700 group-hover:text-primary-700">Candidates</span>
+            </Link>
+            <Link
+              to="/voters"
+              className="flex flex-col items-center gap-2 p-4 bg-surface-50 rounded-lg border border-surface-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
+            >
+              <span className="text-2xl">👥</span>
+              <span className="text-sm font-medium text-surface-700 group-hover:text-primary-700">Voters</span>
+            </Link>
+            <Link
+              to="/results"
+              className="flex flex-col items-center gap-2 p-4 bg-surface-50 rounded-lg border border-surface-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
+            >
+              <span className="text-2xl">📊</span>
+              <span className="text-sm font-medium text-surface-700 group-hover:text-primary-700">Results</span>
+            </Link>
+          </div>
+        </div>
 
-  const colorMap = {
-    blue: 'border-primary-200 hover:border-primary-400 text-primary-600 group-hover:text-primary-700',
-    red: 'border-red-200 hover:border-red-400 text-red-600 group-hover:text-red-700',
-    green: 'border-green-200 hover:border-green-400 text-green-600 group-hover:text-green-700',
-    amber: 'border-amber-200 hover:border-amber-400 text-amber-600 group-hover:text-amber-700',
+        {/* System Status */}
+        <div className="bg-white border border-surface-200 rounded-xl p-6 shadow-card">
+          <h2 className="text-lg font-medium text-surface-800 mb-4">System Status</h2>
+          <div className="space-y-3">
+            {[
+              { label: 'Backend API', key: 'backend', url: config.backendUrl },
+              { label: 'ML Service', key: 'ml', url: config.mlUrl },
+              { label: 'Graph Service', key: 'graph', url: config.graphUrl },
+            ].map(({ label, key, url }) => (
+              <div key={key} className="flex items-center justify-between py-3 px-4 bg-surface-50 rounded-lg">
+                <div>
+                  <span className="font-medium text-surface-700">{label}</span>
+                  <span className="text-surface-400 text-xs ml-2">{url}</span>
+                </div>
+                <StatusIndicator status={health[key]} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
+  // Voter Dashboard
   return (
-    <div className="space-y-8">
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          label="Active Booths"
-          value={stats.booths}
-          subtext="BOOTH_001 – BOOTH_006"
-          color="blue"
-          delay="delay-100"
-        />
-        <StatCard
-          label="Registered Voters"
-          value={stats.voters.toLocaleString()}
-          subtext="Face verified"
-          color="green"
-          delay="delay-200"
-        />
-        <StatCard
-          label="Blockchain Txs"
-          value={stats.transactions.toLocaleString()}
-          subtext="On Ethereum"
-          color="purple"
-          delay="delay-300"
-        />
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Welcome */}
+      <div className="text-center py-6">
+        <h1 className="text-2xl font-semibold text-surface-800">
+          Welcome, {user?.name || 'Voter'}
+        </h1>
+        <p className="text-surface-500 mt-1">Cast your vote securely with blockchain technology</p>
       </div>
 
-      {/* Quick Links */}
-      <div className="bg-white border border-surface-200 rounded-xl p-8 shadow-card animate-fadeIn delay-200">
-        <h2 className="text-2xl font-bold text-surface-800 mb-6">Quick Links</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickLinks.filter(link => link.show).map((link, idx) => (
-            <a
-              key={link.href}
-              href={link.href}
-              target="_blank"
-              rel="noreferrer"
-              className={`bg-surface-50 border-2 ${colorMap[link.color].split(' ')[0]} rounded-xl p-5 card-hover group transition-all animate-fadeIn`}
-              style={{ animationDelay: `${(idx + 1) * 100}ms` }}
-            >
-              <p className={`font-semibold text-lg flex items-center gap-2 ${colorMap[link.color].split(' ').slice(-2).join(' ')}`}>
-                <span className="text-xl">{link.icon}</span>
-                {link.title}
-              </p>
-              <p className="text-sm text-surface-500 mt-2">{link.description}</p>
-              <p className="text-xs text-surface-400 mt-3 group-hover:text-surface-500 transition-colors">
-                Opens in new tab →
-              </p>
-            </a>
-          ))}
-        </div>
+      {/* Main Action */}
+      <Link
+        to="/vote"
+        className="block bg-primary-600 hover:bg-primary-700 text-white rounded-xl p-6 text-center transition-colors shadow-card"
+      >
+        <span className="text-3xl block mb-2">🗳️</span>
+        <span className="text-xl font-semibold">Cast Your Vote</span>
+        <p className="text-primary-100 text-sm mt-1">Secure, verifiable, and anonymous</p>
+      </Link>
+
+      {/* Secondary Actions */}
+      <div className="grid grid-cols-2 gap-4">
+        <Link
+          to="/results"
+          className="bg-white border border-surface-200 rounded-xl p-5 text-center hover:border-surface-300 transition-colors shadow-card"
+        >
+          <span className="text-2xl block mb-2">📊</span>
+          <span className="font-medium text-surface-700">View Results</span>
+          <p className="text-surface-500 text-sm mt-1">Live blockchain data</p>
+        </Link>
+        <Link
+          to="/receipt"
+          className="bg-white border border-surface-200 rounded-xl p-5 text-center hover:border-surface-300 transition-colors shadow-card"
+        >
+          <span className="text-2xl block mb-2">🧾</span>
+          <span className="font-medium text-surface-700">My Receipt</span>
+          <p className="text-surface-500 text-sm mt-1">Verify your vote</p>
+        </Link>
       </div>
 
-      {/* System Status */}
-      <div className="bg-white border border-surface-200 rounded-xl p-6 shadow-card animate-fadeIn delay-300">
-        <h3 className="text-lg font-semibold text-surface-800 mb-4">System Status</h3>
-        <div className="space-y-3">
-          {[
-            { label: 'Backend API', key: 'backend', url: config.backendUrl },
-            { label: 'ML Service', key: 'ml', url: config.mlUrl },
-            { label: 'Graph Service', key: 'graph', url: config.graphUrl },
-          ].map(({ label, key, url }) => (
-            <div key={key} className="flex items-center justify-between text-sm py-2 px-3 bg-surface-50 rounded-lg">
-              <div>
-                <span className="text-surface-700 font-medium">{label}</span>
-                <span className="text-surface-400 text-xs ml-2">{url}</span>
-              </div>
-              <StatusDot status={health[key]} />
-            </div>
-          ))}
+      {/* Profile Link */}
+      <Link
+        to="/profile"
+        className="flex items-center gap-4 bg-white border border-surface-200 rounded-xl p-4 hover:border-surface-300 transition-colors shadow-card"
+      >
+        <div className="w-12 h-12 bg-surface-100 rounded-full flex items-center justify-center text-xl">
+          {user?.name?.charAt(0) || '👤'}
         </div>
+        <div className="flex-1">
+          <p className="font-medium text-surface-700">{user?.name || 'Voter'}</p>
+          <p className="text-sm text-surface-500">View your profile</p>
+        </div>
+        <svg className="w-5 h-5 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
+
+      {/* Info */}
+      <div className="bg-surface-100 border border-surface-200 rounded-xl p-5 text-center text-sm text-surface-500">
+        <p>Your vote is secured by Ethereum blockchain and face biometric verification.</p>
+        <p className="mt-1">Each vote is recorded immutably and can be verified.</p>
       </div>
     </div>
   )

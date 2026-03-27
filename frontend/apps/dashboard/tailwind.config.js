@@ -7,53 +7,78 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Light theme primary palette
+        // Warmer, more organic primary palette
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#f0f7ff',
+          100: '#e0efff',
+          200: '#b9dcfe',
+          300: '#7cc2fd',
+          400: '#36a4f9',
+          500: '#0c87ea',
+          600: '#0069c8',
+          700: '#0154a2',
+          800: '#064886',
+          900: '#0b3d6f',
         },
-        // Neutral grays for light theme
+        // Warmer grays with subtle warmth
         surface: {
-          50: '#f8fafc',   // Main background
-          100: '#f1f5f9',  // Secondary background
-          200: '#e2e8f0',  // Border light
-          300: '#cbd5e1',  // Border medium
-          400: '#94a3b8',  // Muted text
-          500: '#64748b',  // Secondary text
-          600: '#475569',  // Primary text muted
-          700: '#334155',  // Primary text
-          800: '#1e293b',  // Headings
-          900: '#0f172a',  // High contrast
+          50: '#fafaf9',   // Warm off-white
+          100: '#f4f4f2',  // Light cream
+          200: '#e7e5e2',  // Warm border light
+          300: '#d5d2cd',  // Warm border medium
+          400: '#a19c94',  // Warm muted text
+          500: '#716d66',  // Warm secondary text
+          600: '#55524d',  // Warm primary text muted
+          700: '#3d3b38',  // Warm primary text
+          800: '#27251f',  // Warm headings
+          900: '#141310',  // High contrast
         },
-        // Legacy dark palette (for reference/dark mode future)
-        dark: {
-          50: '#f9fafb',
-          100: '#f3f4f6',
-          900: '#0a0a1a',
-          800: '#111827',
-          700: '#1f2937',
-          600: '#374151',
+        // Accent colors
+        accent: {
+          green: '#16a34a',
+          amber: '#d97706',
+          red: '#dc2626',
         }
       },
+      fontFamily: {
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif',
+        ],
+      },
       animation: {
-        'fade-in': 'fadeIn 0.4s ease-out forwards',
-        'slide-in': 'slideIn 0.3s ease-out forwards',
-        'scale-in': 'scaleIn 0.3s ease-out forwards',
-        'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+        'fade-in': 'fadeIn 0.3s ease-out forwards',
+        'slide-up': 'slideUp 0.3s ease-out forwards',
+        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseSoft: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
+        },
       },
       boxShadow: {
-        'soft': '0 2px 15px -3px rgb(0 0 0 / 0.07), 0 10px 20px -2px rgb(0 0 0 / 0.04)',
-        'card': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        'card-hover': '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-      }
+        'soft': '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.06)',
+        'card': '0 1px 2px -1px rgb(0 0 0 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.04)',
+        'elevated': '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07)',
+      },
+      borderRadius: {
+        'xl': '0.875rem',
+        '2xl': '1rem',
+      },
     },
   },
   plugins: [],

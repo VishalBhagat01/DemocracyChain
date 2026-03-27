@@ -36,31 +36,31 @@ function Login() {
       navigate('/')
     } catch (err) {
       console.error('Login failed:', err.message)
-      setError('Cannot reach the server. Is it running on port 8080?')
+      setError('Cannot reach the server. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-surface-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md animate-fadeIn">
+    <div className="min-h-screen bg-surface-50 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-2xl mb-4">
-            <span className="text-3xl">🗳️</span>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-100 rounded-xl mb-4">
+            <span className="text-2xl">🗳️</span>
           </div>
-          <h1 className="text-3xl font-bold text-surface-800 mb-2">VoteChain</h1>
-          <p className="text-surface-500">Decentralized Voting Dashboard</p>
+          <h1 className="text-2xl font-semibold text-surface-800">VoteChain</h1>
+          <p className="text-surface-500 mt-1">Decentralized Voting Platform</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-surface-200 rounded-2xl p-8 shadow-soft animate-scaleIn">
-          <h2 className="text-xl font-semibold text-surface-800 mb-6">Sign In</h2>
+        <div className="bg-white border border-surface-200 rounded-xl p-6 shadow-card">
+          <h2 className="text-lg font-medium text-surface-800 mb-5">Sign in</h2>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">
+              <label className="block text-sm font-medium text-surface-600 mb-1.5">
                 Voter ID
               </label>
               <input
@@ -69,55 +69,48 @@ function Login() {
                 onChange={(e) => setVoterId(e.target.value)}
                 placeholder="Enter your voter ID"
                 autoFocus
-                className="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 text-surface-800 placeholder-surface-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
+                autoComplete="username"
+                className="w-full bg-surface-50 border border-surface-300 rounded-lg px-3.5 py-2.5 text-surface-800 placeholder-surface-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-200 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">
+              <label className="block text-sm font-medium text-surface-600 mb-1.5">
                 Password
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 text-surface-800 placeholder-surface-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                className="w-full bg-surface-50 border border-surface-300 rounded-lg px-3.5 py-2.5 text-surface-800 placeholder-surface-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-200 transition-colors"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 animate-fadeIn">
-                <p className="text-red-600 text-sm flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  {error}
-                </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                <p className="text-red-700 text-sm">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all btn-press shadow-sm hover:shadow-md focus-ring"
+              className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in...
                 </span>
-              ) : 'Sign In'}
+              ) : 'Sign in'}
             </button>
           </form>
 
-          {/* Info hint (no auto-fill for security) */}
-          <div className="mt-6 pt-6 border-t border-surface-200">
+          <div className="mt-5 pt-5 border-t border-surface-200">
             <p className="text-xs text-surface-400 text-center">
-              Contact your administrator for account credentials
+              Contact your administrator for credentials
             </p>
           </div>
         </div>

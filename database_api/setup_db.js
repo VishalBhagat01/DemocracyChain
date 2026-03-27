@@ -50,6 +50,23 @@ async function main() {
     `, ['admin', hash, 'admin', 'System Admin', 'admin@system.local', 'ALL', 'approved']);
     console.log('    admin account ready.');
 
+    // 4. Seed test voter account
+    console.log('  Seeding test voter account...');
+    const voterPassword = 'Voter@001';
+    const voterHash = await bcrypt.hash(voterPassword, BCRYPT_ROUNDS);
+    await client.query(`
+      INSERT INTO voters(voter_id, hashed_password, role, full_name, email, booth_id, status)
+      VALUES($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT(voter_id) DO UPDATE
+        SET hashed_password = EXCLUDED.hashed_password,
+            role = EXCLUDED.role,
+            full_name = EXCLUDED.full_name,
+            email = EXCLUDED.email,
+            booth_id = EXCLUDED.booth_id,
+            status = EXCLUDED.status;
+    `, ['voter001', voterHash, 'voter', 'Test Voter', 'voter001@test.local', 'BOOTH001', 'approved']);
+    console.log('    voter001 account ready.');
+
     await client.end();
     console.log('\n  Database setup complete!\n');
     console.log('  Admin login: admin / ' + adminPassword);
