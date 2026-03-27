@@ -67,13 +67,19 @@ if (!JWT_SECRET) {
 }
 
 const authorizeUser = (req, res, next) => {
-    let token = req.query.Authorization?.split("Bearer ")[1];
-    if (!token && req.headers.authorization) {
-        token = req.headers.authorization.split("Bearer ")[1];
+    // Prefer Authorization header over query params (security best practice)
+    let token = req.headers.authorization?.split("Bearer ")[1];
+
+    // Legacy fallback for query param (deprecate in future)
+    if (!token && req.query.Authorization) {
+        token = req.query.Authorization.split("Bearer ")[1];
     }
 
     if (!token) {
-        console.warn(`[AUTH] No token found for ${req.path}`);
+        // Return JSON for API routes, redirect for HTML routes
+        if (req.path.startsWith('/api/')) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
         return res.redirect("/");
     }
 
@@ -81,7 +87,9 @@ const authorizeUser = (req, res, next) => {
         req.user = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
         next();
     } catch (err) {
-        console.error(`[AUTH] Invalid token for ${req.path}:`, err.message);
+        if (req.path.startsWith('/api/')) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+        }
         return res.redirect("/");
     }
 };
@@ -107,16 +115,17 @@ app.get("/contract.json", (_req, res) => {
     }
 });
 
-// ── POST /login — authenticate against PostgreSQL ─────────────────────────
-app.get("/login", async (req, res) => {
-    const { voter_id, password } = req.query;
+// ── POST /login — authenticate against PostgreSQL (secure POST method) ─────
+// NOTE: GET /login with credentials in query string removed for security
+// All clients should use POST /api/login with credentials in request body
+app.post("/login", async (req, res) => {
+    const { voter_id, password } = req.body;
 
     if (!voter_id || !password) {
         return res.status(400).json({ message: "voter_id and password are required" });
     }
 
     try {
-        // Fetch voter from DB
         const { rows } = await pool.query(
             "SELECT voter_id, hashed_password, role, full_name, is_active FROM voters WHERE voter_id = $1",
             [voter_id.trim()]
@@ -126,14 +135,12 @@ app.get("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // Compare password with bcrypt hash
         const voter = rows[0];
         const valid = await bcrypt.compare(password, voter.hashed_password);
         if (!valid) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // Return basic token (legacy fallback for older scripts)
         const token = jwt.sign(
             { id: voter.voter_id, role: voter.role, name: voter.full_name },
             JWT_SECRET,
@@ -198,8 +205,8 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Hash password with consistent salt rounds
+        const hashedPassword = await bcrypt.hash(password, 12);
 
         // Insert as pending
         await pool.query(`
@@ -422,10 +429,17 @@ app.put('/api/voters/:id/approve', authorizeUser, async (req, res) => {
 // ── GET /api/audit-log — admin only ──────────────────────────────────────
 app.get("/api/audit-log", authorizeUser, async (req, res) => {
     if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
-    const { rows } = await pool.query(
-        "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100"
-    );
-    res.json(rows);
+    try {
+        const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+        const { rows } = await pool.query(
+            "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT $1",
+            [limit]
+        );
+        res.json(rows);
+    } catch (err) {
+        console.error("Audit log error:", err);
+        res.status(500).json({ message: "Database error" });
+    }
 });
 
 // ── GET /api/receipt/:tx_hash — Fetch blockchain transaction ──────────────

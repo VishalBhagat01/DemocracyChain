@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
 import Home from './pages/Home'
 import BoothManagement from './pages/BoothManagement'
@@ -19,43 +20,107 @@ function AdminRoute({ children }) {
 function Navbar() {
   const navigate = useNavigate()
   const user = getUser()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
     clearToken()
     navigate('/login', { replace: true })
   }
 
+  const navLinks = [
+    { to: '/', label: 'Home', show: true },
+    { to: '/booth-management', label: 'Booths', show: isAdmin() },
+    { to: '/analytics', label: 'Analytics', show: isAdmin() },
+    { to: '/receipt', label: 'Receipt', show: true },
+  ]
+
   return (
-    <nav className="bg-dark-800 border-b border-dark-700">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="text-xl font-bold text-blue-400">
-            🗳️ VoteChain
+    <nav className="bg-white border-b border-surface-200 shadow-sm sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors">
+            <span className="text-2xl">🗳️</span>
+            <span>VoteChain</span>
           </Link>
-          <div className="flex gap-6">
-            <Link to="/" className="text-gray-400 hover:text-white transition">Home</Link>
-            {isAdmin() && (
-              <>
-                <Link to="/booth-management" className="text-gray-400 hover:text-white transition">Booths</Link>
-                <Link to="/analytics" className="text-gray-400 hover:text-white transition">Analytics</Link>
-              </>
-            )}
-            <Link to="/receipt" className="text-gray-400 hover:text-white transition">Receipt</Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-6">
+            {navLinks.filter(link => link.show).map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-surface-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded px-2 py-1"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {user && (
-            <span className="text-sm text-gray-400">
-              {user.role === 'admin' ? '🔴' : '🟢'} {user.name || user.id}
-            </span>
-          )}
+
+          {/* User & Logout */}
+          <div className="hidden md:flex items-center gap-4">
+            {user && (
+              <span className="text-sm text-surface-500 flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${user.role === 'admin' ? 'bg-red-500' : 'bg-green-500'}`} />
+                {user.name || user.id}
+              </span>
+            )}
+            <button
+              onClick={handleLogout}
+              className="text-sm text-surface-600 hover:text-red-600 border border-surface-300 hover:border-red-400 px-4 py-1.5 rounded-lg transition-all btn-press focus-ring"
+            >
+              Logout
+            </button>
+          </div>
+
+          {/* Mobile Menu Button */}
           <button
-            onClick={handleLogout}
-            className="text-sm text-gray-400 hover:text-red-400 border border-dark-600 hover:border-red-500 px-3 py-1 rounded transition"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-surface-600 hover:text-primary-600 transition-colors focus-ring rounded"
+            aria-label="Toggle menu"
           >
-            Logout
+            {mobileMenuOpen ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
           </button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden pt-4 pb-2 animate-fadeIn">
+            <div className="flex flex-col gap-2">
+              {navLinks.filter(link => link.show).map(link => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-surface-600 hover:text-primary-600 hover:bg-surface-100 font-medium py-2 px-3 rounded-lg transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <hr className="my-2 border-surface-200" />
+              {user && (
+                <span className="text-sm text-surface-500 px-3 py-2 flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${user.role === 'admin' ? 'bg-red-500' : 'bg-green-500'}`} />
+                  {user.name || user.id}
+                </span>
+              )}
+              <button
+                onClick={handleLogout}
+                className="text-left text-red-600 hover:bg-red-50 font-medium py-2 px-3 rounded-lg transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )
@@ -63,7 +128,7 @@ function Navbar() {
 
 function AppLayout() {
   return (
-    <div className="min-h-screen bg-dark-900">
+    <div className="min-h-screen bg-surface-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Routes>

@@ -31,14 +31,13 @@ async function main() {
     await client.query(initSQL);
     console.log('    Fresh schema created.');
 
-    // 3. Seed admin user
-    console.log('\n🌱  Seeding admin user...');
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
-    const adminHash = await bcrypt.hash(adminPassword, 12);
     // 3. Seed admin and sample voters
     console.log('\n🌱  Seeding users...');
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
+    const BCRYPT_ROUNDS = 12; // Consistent salt rounds for all passwords
+
     const sampleVoters = [
-        { voter_id: 'admin', password: process.env.ADMIN_PASSWORD || 'Admin@123', role: 'admin', full_name: 'System Admin', email: 'admin@system.local', booth_id: 'ALL', status: 'approved' },
+        { voter_id: 'admin', password: adminPassword, role: 'admin', full_name: 'System Admin', email: 'admin@system.local', booth_id: 'ALL', status: 'approved' },
         { voter_id: 'voter001', password: 'Voter@001', role: 'voter', full_name: 'Rahul Sharma', email: 'rahul@example.com', booth_id: 'BOOTH001', status: 'approved' },
         { voter_id: 'voter002', password: 'Voter@002', role: 'voter', full_name: 'Priya Patel', email: 'priya@example.com', booth_id: 'BOOTH001', status: 'approved' },
         { voter_id: 'voter003', password: 'Voter@003', role: 'voter', full_name: 'Amit Singh', email: 'amit@example.com', booth_id: 'BOOTH002', status: 'approved' },
@@ -47,7 +46,7 @@ async function main() {
     ];
 
     for (const v of sampleVoters) {
-        const hash = await bcrypt.hash(v.password, 10);
+        const hash = await bcrypt.hash(v.password, BCRYPT_ROUNDS);
         await client.query(`
           INSERT INTO voters(voter_id, hashed_password, role, full_name, email, booth_id, status)
           VALUES($1, $2, $3, $4, $5, $6, $7)

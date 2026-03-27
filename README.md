@@ -38,14 +38,26 @@ Core voting data is committed on-chain. User identity, approvals, and audit trai
 
 ## Quick Start (Local)
 
-1. Install dependencies
+1. **Install dependencies**
 
 ```bash
+# Main project & API dependencies
 npm install
+
+# Dashboard dependencies
 cd frontend/apps/dashboard && npm install
+cd ../../../
+
+# ML service dependencies (optional)
+cd frontend/apps/ml-service && pip install -r requirements.txt
+cd ../../../
+
+# Graph service dependencies (optional)
+cd frontend/apps/graph-service && pip install -r requirements.txt
+cd ../../../
 ```
 
-2. Create environment file
+2. **Create environment file**
 
 ```bash
 cp .env.example .env
@@ -57,49 +69,66 @@ Windows CMD alternative:
 copy .env.example .env
 ```
 
-3. Update required values in .env
+3. **Update required values in `.env`**
 
-- DATABASE_URL
-- SECRET_KEY
-- MASTER_WALLET_PRIVATE_KEY
-- ETH_RPC_URL
+- `DATABASE_URL`: Your PostgreSQL connection string.
+- `SECRET_KEY`: Random string for JWT.
+- `MASTER_WALLET_PRIVATE_KEY`: Private key of a wallet with test ETH (if using a real testnet).
+- `ETH_RPC_URL`: RPC endpoint (e.g., `http://127.0.0.1:8545`).
+- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`: If using the graph service.
 
-4. Initialize database schema and seed users
+4. **Initialize database schema and seed users**
 
 ```bash
 npm run setup:db
 ```
 
-5. Start local blockchain node (terminal 1)
+5. **Start local blockchain node (Terminal 1)**
 
 ```bash
 npm run node
 ```
 
-6. Compile and deploy contract (terminal 2)
+6. **Compile and deploy contract (Terminal 2)**
 
 ```bash
 npm run compile
 npm run deploy:local
 ```
 
-This writes contract metadata to frontend/src/contract.json.
+This writes contract metadata to `frontend/src/contract.json`.
 
-7. Start Express API + static app (terminal 3)
+7. **Start Express API + static web app (Terminal 3)**
 
 ```bash
 npm run frontend
 ```
 
-App URL: http://localhost:8080
+App URL: [http://localhost:8080](http://localhost:8080)
 
-8. Optional: start dashboard dev server (terminal 4)
+8. **Optional: Start dashboard dev server (Terminal 4)**
 
 ```bash
 npm run dashboard:dev
 ```
 
-Dashboard URL: http://localhost:5173
+Dashboard URL: [http://localhost:5173](http://localhost:5173)
+
+9. **Optional: Start ML service (Terminal 5)**
+
+```bash
+npm run ml:start
+```
+
+10. **Optional: Start & Seed Graph service (Terminal 6)**
+
+```bash
+# Seed the data first
+npm run graph:seed
+
+# Start the service
+npm run graph:start
+```
 
 ## Demo Credentials
 

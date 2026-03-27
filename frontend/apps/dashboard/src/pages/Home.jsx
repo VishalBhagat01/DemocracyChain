@@ -1,11 +1,48 @@
 import { useState, useEffect } from 'react'
-import { backendUrl, isAdmin } from '../auth'
+import { backendUrl, isAdmin, getAuthHeaders } from '../auth'
 import { config } from '../config'
 
 function StatusDot({ status }) {
-  if (status === 'checking') return <span className="text-yellow-400">⏳ Checking…</span>
-  if (status === 'online')   return <span className="text-green-400">● Online</span>
-  return <span className="text-red-400">● Offline</span>
+  if (status === 'checking') {
+    return (
+      <span className="flex items-center gap-2 text-amber-600">
+        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft" />
+        Checking...
+      </span>
+    )
+  }
+  if (status === 'online') {
+    return (
+      <span className="flex items-center gap-2 text-green-600">
+        <span className="w-2 h-2 rounded-full bg-green-500" />
+        Online
+      </span>
+    )
+  }
+  return (
+    <span className="flex items-center gap-2 text-red-600">
+      <span className="w-2 h-2 rounded-full bg-red-500" />
+      Offline
+    </span>
+  )
+}
+
+function StatCard({ label, value, subtext, color, delay }) {
+  const colorClasses = {
+    blue: 'border-primary-200 hover:border-primary-400 text-primary-600',
+    green: 'border-green-200 hover:border-green-400 text-green-600',
+    purple: 'border-purple-200 hover:border-purple-400 text-purple-600',
+  }
+
+  return (
+    <div
+      className={`bg-white border-2 ${colorClasses[color].split(' ')[0]} rounded-xl p-6 shadow-card card-hover animate-fadeIn ${delay}`}
+    >
+      <p className="text-surface-500 text-sm font-medium">{label}</p>
+      <p className={`text-4xl font-bold mt-2 ${colorClasses[color].split(' ').slice(-1)}`}>{value}</p>
+      <p className="text-surface-400 text-xs mt-2">{subtext}</p>
+    </div>
+  )
 }
 
 function Home() {
@@ -27,7 +64,8 @@ function Home() {
       try {
         const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3000) })
         setHealth(prev => ({ ...prev, [key]: res.ok ? 'online' : 'offline' }))
-      } catch {
+      } catch (err) {
+        console.warn(`Health check failed for ${key}:`, err.message)
         setHealth(prev => ({ ...prev, [key]: 'offline' }))
       }
     }
@@ -45,104 +83,137 @@ function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // Bump transactions counter every 30s
+  // Fetch actual stats from backend
   useEffect(() => {
-    const interval = setInterval(() => {
-      setStats(prev => ({ ...prev, transactions: Math.floor(Math.random() * 1000) }))
-    }, 30000)
-    return () => clearInterval(interval)
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${config.backendUrl}/api/voters`, {
+          headers: getAuthHeaders()
+        })
+        if (res.ok) {
+          const voters = await res.json()
+          setStats(prev => ({ ...prev, voters: voters.length }))
+        }
+      } catch (err) {
+        console.warn('Failed to fetch voter stats:', err.message)
+      }
+    }
+
+    if (isAdmin()) {
+      fetchStats()
+    }
   }, [])
 
   const admin = isAdmin()
+
+  const quickLinks = [
+    {
+      href: backendUrl('/vote'),
+      icon: '🗳️',
+      title: 'Vote',
+      description: 'Cast your vote securely on-chain',
+      color: 'blue',
+      show: true,
+    },
+    {
+      href: backendUrl('/admin'),
+      icon: '🔐',
+      title: 'Admin Panel',
+      description: 'Manage voters, approve registrations',
+      color: 'red',
+      show: admin,
+    },
+    {
+      href: backendUrl('/results'),
+      icon: '📊',
+      title: 'Live Results',
+      description: 'Real-time vote counts from blockchain',
+      color: 'green',
+      show: true,
+    },
+    {
+      href: backendUrl('/register'),
+      icon: '📝',
+      title: 'Register',
+      description: 'Register new voter with face biometrics',
+      color: 'amber',
+      show: admin,
+    },
+  ]
+
+  const colorMap = {
+    blue: 'border-primary-200 hover:border-primary-400 text-primary-600 group-hover:text-primary-700',
+    red: 'border-red-200 hover:border-red-400 text-red-600 group-hover:text-red-700',
+    green: 'border-green-200 hover:border-green-400 text-green-600 group-hover:text-green-700',
+    amber: 'border-amber-200 hover:border-amber-400 text-amber-600 group-hover:text-amber-700',
+  }
 
   return (
     <div className="space-y-8">
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-dark-800 border border-dark-700 rounded-lg p-6 hover:border-blue-500 transition">
-          <p className="text-gray-400 text-sm">Active Booths</p>
-          <p className="text-4xl font-bold text-blue-400 mt-2">{stats.booths}</p>
-          <p className="text-gray-500 text-xs mt-2">BOOTH_001 – BOOTH_006</p>
-        </div>
-        <div className="bg-dark-800 border border-dark-700 rounded-lg p-6 hover:border-green-500 transition">
-          <p className="text-gray-400 text-sm">Registered Voters</p>
-          <p className="text-4xl font-bold text-green-400 mt-2">{stats.voters}</p>
-          <p className="text-gray-500 text-xs mt-2">Face verified</p>
-        </div>
-        <div className="bg-dark-800 border border-dark-700 rounded-lg p-6 hover:border-purple-500 transition">
-          <p className="text-gray-400 text-sm">Blockchain Txs</p>
-          <p className="text-4xl font-bold text-purple-400 mt-2">{stats.transactions}</p>
-          <p className="text-gray-500 text-xs mt-2">On Ethereum</p>
+        <StatCard
+          label="Active Booths"
+          value={stats.booths}
+          subtext="BOOTH_001 – BOOTH_006"
+          color="blue"
+          delay="delay-100"
+        />
+        <StatCard
+          label="Registered Voters"
+          value={stats.voters.toLocaleString()}
+          subtext="Face verified"
+          color="green"
+          delay="delay-200"
+        />
+        <StatCard
+          label="Blockchain Txs"
+          value={stats.transactions.toLocaleString()}
+          subtext="On Ethereum"
+          color="purple"
+          delay="delay-300"
+        />
+      </div>
+
+      {/* Quick Links */}
+      <div className="bg-white border border-surface-200 rounded-xl p-8 shadow-card animate-fadeIn delay-200">
+        <h2 className="text-2xl font-bold text-surface-800 mb-6">Quick Links</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickLinks.filter(link => link.show).map((link, idx) => (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+              className={`bg-surface-50 border-2 ${colorMap[link.color].split(' ')[0]} rounded-xl p-5 card-hover group transition-all animate-fadeIn`}
+              style={{ animationDelay: `${(idx + 1) * 100}ms` }}
+            >
+              <p className={`font-semibold text-lg flex items-center gap-2 ${colorMap[link.color].split(' ').slice(-2).join(' ')}`}>
+                <span className="text-xl">{link.icon}</span>
+                {link.title}
+              </p>
+              <p className="text-sm text-surface-500 mt-2">{link.description}</p>
+              <p className="text-xs text-surface-400 mt-3 group-hover:text-surface-500 transition-colors">
+                Opens in new tab →
+              </p>
+            </a>
+          ))}
         </div>
       </div>
 
-      {/* Quick Links — all authenticated links to the backend */}
-      <div className="bg-dark-800 border border-dark-700 rounded-lg p-8">
-        <h2 className="text-2xl font-bold text-white mb-6">Quick Links</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a
-            href={backendUrl('/vote')}
-            target="_blank"
-            rel="noreferrer"
-            className="bg-dark-700 border border-dark-600 rounded-lg p-5 hover:border-blue-500 hover:bg-dark-600 transition group"
-          >
-            <p className="font-semibold text-blue-400 group-hover:text-blue-300 text-lg">🗳️ Vote</p>
-            <p className="text-sm text-gray-400 mt-1">Cast your vote securely on-chain</p>
-            <p className="text-xs text-gray-600 mt-3">Opens voting portal →</p>
-          </a>
-
-          {admin && (
-            <a
-              href={backendUrl('/admin')}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-dark-700 border border-dark-600 rounded-lg p-5 hover:border-red-500 hover:bg-dark-600 transition group"
-            >
-              <p className="font-semibold text-red-400 group-hover:text-red-300 text-lg">🔐 Admin Panel</p>
-              <p className="text-sm text-gray-400 mt-1">Manage voters, approve registrations</p>
-              <p className="text-xs text-gray-600 mt-3">Opens admin portal →</p>
-            </a>
-          )}
-
-          <a
-            href={backendUrl('/results')}
-            target="_blank"
-            rel="noreferrer"
-            className="bg-dark-700 border border-dark-600 rounded-lg p-5 hover:border-green-500 hover:bg-dark-600 transition group"
-          >
-            <p className="font-semibold text-green-400 group-hover:text-green-300 text-lg">📊 Live Results</p>
-            <p className="text-sm text-gray-400 mt-1">Real-time vote counts from blockchain</p>
-            <p className="text-xs text-gray-600 mt-3">Opens results page →</p>
-          </a>
-
-          {admin && (
-            <a
-              href={backendUrl('/register')}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-dark-700 border border-dark-600 rounded-lg p-5 hover:border-yellow-500 hover:bg-dark-600 transition group"
-            >
-              <p className="font-semibold text-yellow-400 group-hover:text-yellow-300 text-lg">📝 Register</p>
-              <p className="text-sm text-gray-400 mt-1">Register new voter with face biometrics</p>
-              <p className="text-xs text-gray-600 mt-3">Opens registration portal →</p>
-            </a>
-          )}
-        </div>
-      </div>
-
-      {/* System Status — live */}
-      <div className="bg-dark-800 border border-dark-700 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">System Status</h3>
+      {/* System Status */}
+      <div className="bg-white border border-surface-200 rounded-xl p-6 shadow-card animate-fadeIn delay-300">
+        <h3 className="text-lg font-semibold text-surface-800 mb-4">System Status</h3>
         <div className="space-y-3">
           {[
             { label: 'Backend API', key: 'backend', url: config.backendUrl },
             { label: 'ML Service', key: 'ml', url: config.mlUrl },
             { label: 'Graph Service', key: 'graph', url: config.graphUrl },
           ].map(({ label, key, url }) => (
-            <div key={key} className="flex items-center justify-between text-sm">
+            <div key={key} className="flex items-center justify-between text-sm py-2 px-3 bg-surface-50 rounded-lg">
               <div>
-                <span className="text-gray-400">{label}</span>
-                <span className="text-gray-600 text-xs ml-2">{url}</span>
+                <span className="text-surface-700 font-medium">{label}</span>
+                <span className="text-surface-400 text-xs ml-2">{url}</span>
               </div>
               <StatusDot status={health[key]} />
             </div>
